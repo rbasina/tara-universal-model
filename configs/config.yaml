@@ -1,0 +1,215 @@
+# TARA Universal HAI Model Configuration
+# Technology that Amplifies Rather than Replaces Abilities
+
+# Model Configuration
+model_config:
+  base_model: "microsoft/DialoGPT-medium"
+  model_type: "causal_lm"
+  use_quantization: false  # Disable for stability
+  
+# HAI Training Configuration
+training_config:
+  # HAI Core Training Parameters
+  num_epochs: 2
+  batch_size: 4  # Stable batch size
+  learning_rate: 5e-4  # Proven working learning rate
+  max_sequence_length: 256
+  gradient_accumulation_steps: 2
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+  
+  # Logging and Monitoring
+  logging_steps: 10
+  save_steps: 100
+  save_total_limit: 2
+  
+  # Stability Settings
+  fp16: false  # Disable for stability
+  use_gradient_checkpointing: false
+  dataloader_num_workers: 0  # Disable for stability
+  
+  # PEFT/LoRA Configuration for Universal Adaptation
+  use_peft: true
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.1
+  lora_target_modules: ["c_attn", "c_proj"]  # DialoGPT specific
+  
+  # Evaluation
+  evaluation_strategy: "epoch"
+  eval_steps: 500
+
+# HAI Domain Configuration
+domains:
+  - name: "healthcare"
+    description: "Human + AI healthcare collaboration"
+    amplification_focus: "Medical decision support, patient care enhancement"
+    
+  - name: "business"
+    description: "Human + AI business intelligence"
+    amplification_focus: "Strategic planning, data-driven insights"
+    
+  - name: "education"
+    description: "Human + AI learning facilitation"
+    amplification_focus: "Personalized learning, knowledge transfer"
+    
+  - name: "creative"
+    description: "Human + AI creative collaboration"
+    amplification_focus: "Idea generation, artistic enhancement"
+    
+  - name: "leadership"
+    description: "Human + AI leadership development"
+    amplification_focus: "Decision making, team empowerment"
+
+# Universal HAI Principles
+hai_principles:
+  core_philosophy: "Amplify human capabilities, never replace them"
+  interaction_style: "Collaborative and supportive"
+  adaptation_approach: "Context-aware while maintaining human-centricity"
+  universal_applicability: true
+
+# TARA Universal Model Configuration
+# HAI (Human + AI) Collaboration Platform
+# Privacy-first conversational AI that amplifies human potential across professional and personal domains
+
+project_name: "TARA Universal Model - HAI Platform"
+version: "1.0.0-HAI"
+philosophy: "Human + AI Collaboration - Technology that Amplifies Rather than Replaces Abilities"
+debug: false
+
+# Paths
+base_path: "."
+config_path: "configs"
+models_path: "models"
+data_path: "data"
+logs_path: "logs"
+
+# Emotion Detection Configuration
+emotion:
+  model_name: "j-hartmann/emotion-english-distilroberta-base"
+  threshold: 0.3
+  professional_context: true
+  voice_detection_enabled: false
+  cache_embeddings: true
+
+# Domain Routing Configuration
+domain:
+  domains_config_path: "configs/domains"
+  default_domain: "universal"
+  confidence_threshold: 0.6
+  safety_enabled: true
+  supported_domains:
+    - "healthcare"
+    - "business"
+    - "education"
+    - "creative"
+    - "leadership"
+    - "universal"
+
+# Model Configuration
+model:
+  base_model_name: "microsoft/DialoGPT-medium"
+  max_input_length: 1024
+  max_response_length: 256
+  temperature: 0.7
+  top_p: 0.9
+  top_k: 50
+  repetition_penalty: 1.1
+  use_quantization: false
+  device: "auto"  # "auto", "cpu", "cuda"
+
+# Training Configuration
+training:
+  # LoRA Configuration
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.1
+  lora_target_modules: ["c_attn", "c_proj"]  # DialoGPT specific modules
+  
+  # Training Parameters
+  batch_size: 8
+  gradient_accumulation_steps: 4
+  learning_rate: 0.0003
+  num_epochs: 2
+  max_steps: -1
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+  
+  # Data Parameters
+  max_sequence_length: 256
+  train_split: 0.8
+  validation_split: 0.1
+  test_split: 0.1
+  
+  # Optimization
+  use_gradient_checkpointing: false
+  fp16: true
+  dataloader_num_workers: 2
+  
+  # Logging and Saving
+  logging_steps: 10
+  save_steps: 100
+  evaluation_strategy: "epoch"
+  eval_steps: 500
+  save_total_limit: 2
+  
+  # Advanced
+  use_peft: true
+  use_deepspeed: false
+  deepspeed_config: null
+
+# Model Serving Configuration
+serving:
+  host: "localhost"
+  port: 8000
+  workers: 1
+  max_concurrent_requests: 10
+  request_timeout: 30
+  enable_cors: true
+  enable_docs: true
+  log_level: "INFO"
+  
+  # Model Loading
+  model_cache_dir: "models/cache"
+  adapters_path: "models/adapters"
+  preload_domains:
+    - "healthcare"
+    - "business"
+    - "education"
+  
+  # Rate Limiting
+  rate_limit_enabled: true
+  rate_limit_requests: 100
+  rate_limit_window: 3600  # 1 hour
+
+# Data Processing Configuration
+data:
+  raw_data_path: "data/raw"
+  processed_data_path: "data/processed"
+  synthetic_data_path: "data/synthetic"
+  
+  # Synthetic Data Generation
+  samples_per_domain: 5000
+  quality_threshold: 0.8
+  diversity_threshold: 0.7
+  
+  # Data Processing
+  tokenizer_name: "microsoft/DialoGPT-medium"
+  add_special_tokens: true
+  padding: "max_length"
+  truncation: true
+
+# Security and Privacy Configuration
+security:
+  enable_encryption: true
+  encryption_key_path: "configs/security/encryption.key"
+  
+  # Privacy Settings
+  local_processing_only: true
+  log_conversations: false
+  anonymous_logging: true
+  
+  # HIPAA Compliance (for healthcare domain)
+  hipaa_compliant: true
+  audit_logging: true
+  data_retention_days: 30 

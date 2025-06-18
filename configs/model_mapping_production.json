@@ -1,0 +1,224 @@
+{
+  "model_mapping": {
+    "business": {
+      "primary_model": "microsoft_phi-2",
+      "model_path": "models/microsoft_phi-2",
+      "fallback_model": "microsoft_DialoGPT-large",
+      "fallback_path": "models/microsoft_DialoGPT-large",
+      "backup_model": "microsoft_DialoGPT-medium",
+      "backup_path": "models/microsoft_DialoGPT-medium",
+      "model_type": "general",
+      "parameters": "2.7B",
+      "context_length": 2048,
+      "description": "Phi-2 for business reasoning and professional interactions",
+      "capabilities": ["reasoning", "code_generation", "business_analysis", "professional_communication"],
+      "status": "production_ready"
+    },
+    "education": {
+      "primary_model": "microsoft_DialoGPT-large",
+      "model_path": "models/microsoft_DialoGPT-large",
+      "fallback_model": "microsoft_phi-2",
+      "fallback_path": "models/microsoft_phi-2",
+      "backup_model": "microsoft_DialoGPT-medium",
+      "backup_path": "models/microsoft_DialoGPT-medium",
+      "model_type": "conversational",
+      "parameters": "762M",
+      "context_length": 1024,
+      "description": "DialoGPT-large for educational conversations and tutoring",
+      "capabilities": ["conversation", "educational_dialogue", "explanation", "tutoring"],
+      "status": "production_ready"
+    },
+    "healthcare": {
+      "primary_model": "microsoft_phi-2",
+      "model_path": "models/microsoft_phi-2",
+      "fallback_model": "microsoft_DialoGPT-large",
+      "fallback_path": "models/microsoft_DialoGPT-large",
+      "backup_model": "microsoft_DialoGPT-medium",
+      "backup_path": "models/microsoft_DialoGPT-medium",
+      "model_type": "general",
+      "parameters": "2.7B",
+      "context_length": 2048,
+      "description": "Phi-2 for healthcare conversations with reasoning capabilities",
+      "capabilities": ["reasoning", "healthcare_dialogue", "empathetic_responses", "general_qa"],
+      "status": "production_ready",
+      "note": "Will be upgraded to Llama-3.2-7B-Instruct when available"
+    },
+    "creative": {
+      "primary_model": "microsoft_DialoGPT-large",
+      "model_path": "models/microsoft_DialoGPT-large",
+      "fallback_model": "microsoft_phi-2",
+      "fallback_path": "models/microsoft_phi-2",
+      "backup_model": "microsoft_DialoGPT-medium",
+      "backup_path": "models/microsoft_DialoGPT-medium",
+      "model_type": "conversational",
+      "parameters": "762M",
+      "context_length": 1024,
+      "description": "DialoGPT-large for creative conversations and storytelling",
+      "capabilities": ["creative_dialogue", "storytelling", "brainstorming", "conversation"],
+      "status": "production_ready",
+      "note": "Will be upgraded to Llama-3.2-7B-Instruct when available"
+    },
+    "leadership": {
+      "primary_model": "microsoft_DialoGPT-large",
+      "model_path": "models/microsoft_DialoGPT-large",
+      "fallback_model": "microsoft_phi-2",
+      "fallback_path": "models/microsoft_phi-2",
+      "backup_model": "microsoft_DialoGPT-medium",
+      "backup_path": "models/microsoft_DialoGPT-medium",
+      "model_type": "conversational",
+      "parameters": "762M",
+      "context_length": 1024,
+      "description": "DialoGPT-large for leadership coaching and management conversations",
+      "capabilities": ["leadership_dialogue", "coaching", "strategic_conversation", "professional_advice"],
+      "status": "production_ready",
+      "note": "Will be upgraded to Llama-3.2-7B-Instruct when available"
+    },
+    "universal": {
+      "primary_model": "microsoft_phi-2",
+      "model_path": "models/microsoft_phi-2",
+      "fallback_model": "microsoft_DialoGPT-large",
+      "fallback_path": "models/microsoft_DialoGPT-large",
+      "backup_model": "microsoft_DialoGPT-medium",
+      "backup_path": "models/microsoft_DialoGPT-medium",
+      "model_type": "general",
+      "parameters": "2.7B",
+      "context_length": 2048,
+      "description": "Phi-2 as universal model for general-purpose conversations",
+      "capabilities": ["general_conversation", "reasoning", "code_generation", "multi_domain"],
+      "status": "production_ready"
+    }
+  },
+  "available_models": {
+    "microsoft_DialoGPT-large": {
+      "path": "models/microsoft_DialoGPT-large",
+      "parameters": "762M",
+      "type": "conversational",
+      "license": "MIT",
+      "status": "ready",
+      "context_length": 1024,
+      "capabilities": ["conversation", "dialogue_generation", "storytelling"],
+      "last_verified": "2025-01-14",
+      "performance": "excellent"
+    },
+    "microsoft_DialoGPT-medium": {
+      "path": "models/microsoft_DialoGPT-medium",
+      "parameters": "345M",
+      "type": "conversational",
+      "license": "MIT",
+      "status": "ready",
+      "context_length": 1024,
+      "capabilities": ["conversation", "dialogue_generation"],
+      "last_verified": "2025-01-14",
+      "performance": "good"
+    },
+    "microsoft_phi-2": {
+      "path": "models/microsoft_phi-2",
+      "parameters": "2.7B",
+      "type": "general",
+      "license": "MIT",
+      "status": "ready",
+      "context_length": 2048,
+      "capabilities": ["reasoning", "code_generation", "general_qa", "problem_solving"],
+      "last_verified": "2025-01-14",
+      "performance": "excellent"
+    }
+  },
+  "upgrade_targets": {
+    "microsoft/Phi-3.5-mini-instruct": {
+      "target_domains": ["business"],
+      "parameters": "3.8B",
+      "type": "instruction_tuned",
+      "license": "MIT",
+      "status": "needs_redownload",
+      "context_length": 128000,
+      "capabilities": ["advanced_reasoning", "code_generation", "instruction_following", "business_analysis"],
+      "requires_token": false,
+      "priority": "high",
+      "note": "Will significantly improve business domain performance"
+    },
+    "Qwen/Qwen2.5-7B-Instruct": {
+      "target_domains": ["education"],
+      "parameters": "7B",
+      "type": "instruction_tuned",
+      "license": "Apache 2.0",
+      "status": "needs_redownload",
+      "context_length": 32768,
+      "capabilities": ["educational_content", "multilingual", "tutoring", "explanation"],
+      "requires_token": false,
+      "priority": "high",
+      "note": "Will significantly improve education domain performance"
+    },
+    "meta-llama/Llama-3.2-7B-Instruct": {
+      "target_domains": ["healthcare", "creative", "leadership"],
+      "parameters": "7B",
+      "type": "instruction_tuned",
+      "license": "Llama 3.2 Community License",
+      "status": "pending_download",
+      "context_length": 128000,
+      "capabilities": ["advanced_reasoning", "domain_expertise", "safety_focused", "instruction_following"],
+      "requires_token": true,
+      "priority": "high",
+      "note": "Will provide superior performance for specialized domains"
+    }
+  },
+  "api_endpoints": {
+    "base_url": "http://localhost:8000",
+    "endpoints": {
+      "chat": "/api/v1/chat",
+      "domains": "/api/v1/domains",
+      "models": "/api/v1/models",
+      "health": "/api/v1/health",
+      "status": "/api/v1/status"
+    },
+    "supported_methods": ["POST", "GET"],
+    "response_format": "json",
+    "streaming_support": true
+  },
+  "configuration": {
+    "version": "2.0-production",
+    "environment": "production",
+    "default_fallback_model": "microsoft_DialoGPT-large",
+    "model_loading_timeout": 300,
+    "enable_model_caching": true,
+    "auto_fallback_on_error": true,
+    "fallback_hierarchy": ["primary_model", "fallback_model", "backup_model"],
+    "model_selection_strategy": "capability_based",
+    "context_window_optimization": true,
+    "memory_management": {
+      "enable_model_offloading": true,
+      "max_concurrent_models": 2,
+      "memory_threshold_gb": 8,
+      "preload_primary_models": true
+    },
+    "performance_monitoring": {
+      "enable_metrics": true,
+      "log_model_performance": true,
+      "track_fallback_usage": true,
+      "response_time_tracking": true
+    },
+    "sync_settings": {
+      "tara_ai_companion_compatible": true,
+      "api_version": "v1",
+      "model_endpoint_format": "huggingface",
+      "supports_streaming": true,
+      "cross_origin_enabled": true,
+      "authentication_required": false
+    },
+    "domain_routing": {
+      "enable_automatic_domain_detection": true,
+      "default_domain": "universal",
+      "domain_confidence_threshold": 0.7
+    },
+    "last_updated": "2025-01-14",
+    "schema_version": "2.0-production"
+  },
+  "system_status": {
+    "overall_status": "production_ready",
+    "ready_domains": 6,
+    "total_domains": 6,
+    "working_models": 3,
+    "total_models": 3,
+    "api_server_status": "ready_to_start",
+    "tara_ai_companion_integration": "ready"
+  }
+} 

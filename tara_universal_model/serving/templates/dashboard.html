@@ -1,0 +1,571 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARA Universal Model - Live Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .header {
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .trial-info {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            padding: 2rem;
+            height: calc(100vh - 80px);
+        }
+        
+        .chat-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .chat-header h2 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .chat-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+        
+        .conversation {
+            flex: 1;
+            overflow-y: auto;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            max-height: 400px;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border-radius: 10px;
+            position: relative;
+        }
+        
+        .user-message {
+            background: rgba(102, 126, 234, 0.3);
+            margin-left: 2rem;
+        }
+        
+        .assistant-message {
+            background: rgba(255, 255, 255, 0.1);
+            margin-right: 2rem;
+        }
+        
+        .message-time {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 0.3rem;
+        }
+        
+        .emotion-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .input-section {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            outline: none;
+        }
+        
+        .message-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .send-btn {
+            width: 45px;
+            height: 45px;
+            border: none;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .send-btn:hover {
+            background: #5a67d8;
+            transform: scale(1.05);
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .panel h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: #a0aec0;
+        }
+        
+        .emotion-display {
+            text-align: center;
+        }
+        
+        .emotion-emoji {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .emotion-label {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+        
+        .confidence {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #48bb78;
+        }
+        
+        .training-progress {
+            margin-top: 1rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78, #38a169);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .domain-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .domain-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .domain-status {
+            font-size: 0.8rem;
+            color: #48bb78;
+        }
+        
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .action-btn {
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .action-btn.primary {
+            background: #667eea;
+        }
+        
+        .action-btn.primary:hover {
+            background: #5a67d8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            ⭐ TARA Universal Model
+            <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.8rem;">Live Dashboard</span>
+        </div>
+        <div class="trial-info">
+            🟢 Training in Progress | All Systems Ready
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="chat-section">
+            <div class="chat-header">
+                <h2>TARA Universal Model</h2>
+                <p class="chat-subtitle">Real-time conversation & domain analysis</p>
+            </div>
+            
+            <div class="conversation" id="conversation">
+                <div class="message assistant-message">
+                    <div class="message-time">12:46:47 AM</div>
+                    <div>Welcome! I'm TARA Universal Model, ready to help with professional domain expertise and emotional intelligence.
+                        <span class="emotion-badge">😊 helpful (95%)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-section">
+                <input type="text" class="message-input" placeholder="Type message..." id="messageInput">
+                <select id="domainSelect" style="padding: 0.8rem; border-radius: 8px; background: rgba(255,255,255,0.1); color: white; border: none; min-width: 120px;">
+                    <option value="general">🤖 General</option>
+                    <option value="healthcare">🏥 Healthcare</option>
+                    <option value="business">💼 Business</option>
+                    <option value="education">🎓 Education</option>
+                    <option value="creative">🎨 Creative</option>
+                    <option value="leadership">👥 Leadership</option>
+                </select>
+                <button class="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <div class="panel">
+                <h3>Emotion Analysis</h3>
+                <div class="emotion-display">
+                    <div class="emotion-emoji" id="emotionEmoji">😊</div>
+                    <div class="emotion-label" id="emotionLabel">Helpful</div>
+                    <div class="confidence" id="emotionConfidence">90% confidence</div>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">Facial Analysis</div>
+                    <div style="text-align: center; margin: 0.5rem 0;">📊 Coming Soon</div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>Training Status</h3>
+                <div class="training-progress">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Overall Progress</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.5rem;" id="currentStep">
+                        Initializing training pipeline...
+                    </div>
+                </div>
+                
+                <div class="domain-list">
+                    <div class="domain-item">
+                        <span>🏥 Healthcare</span>
+                        <span class="domain-status" id="healthcareStatus">Pending</span>
+                    </div>
+                    <div class="domain-item">
+                        <span>💼 Business</span>
+                        <span class="domain-status" id="businessStatus">Pending</span>
+                    </div>
+                    <div class="domain-item">
+                        <span>🎓 Education</span>
+                        <span class="domain-status" id="educationStatus">Pending</span>
+                    </div>
+                    <div class="domain-item">
+                        <span>🎨 Creative</span>
+                        <span class="domain-status" id="creativeStatus">Pending</span>
+                    </div>
+                    <div class="domain-item">
+                        <span>👥 Leadership</span>
+                        <span class="domain-status" id="leadershipStatus">Pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>System Status</h3>
+                <div class="status-item">
+                    <span>Connection</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div class="status-indicator"></div>
+                        <span>Connected</span>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <span>AI Status</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div class="status-indicator"></div>
+                        <span>Training</span>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <span>Emotion Active</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div class="status-indicator"></div>
+                        <span>Active</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h3>Quick Actions</h3>
+                <div class="quick-actions">
+                    <button class="action-btn primary" onclick="startTraining()">🚀 Start Training</button>
+                    <button class="action-btn" onclick="stopTraining()">⏹️ Stop Training</button>
+                    <button class="action-btn" onclick="testModels()">🧪 Test Models</button>
+                    <button class="action-btn" onclick="exportModels()">📦 Export Models</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // WebSocket connection
+        const ws = new WebSocket(`ws://${window.location.host}/ws`);
+        
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            handleWebSocketMessage(data);
+        };
+        
+        function handleWebSocketMessage(data) {
+            if (data.type === 'training_progress') {
+                updateTrainingProgress(data.training);
+            } else if (data.type === 'conversation_update') {
+                addMessage(data.conversation);
+                updateEmotion(data.emotion);
+            } else if (data.type === 'status_update') {
+                updateStatus(data);
+            }
+        }
+        
+        function updateTrainingProgress(training) {
+            document.getElementById('progressPercent').textContent = Math.round(training.progress) + '%';
+            document.getElementById('progressFill').style.width = training.progress + '%';
+            document.getElementById('currentStep').textContent = training.current_step;
+            
+            // Update domain statuses
+            const domains = ['healthcare', 'business', 'education', 'creative', 'leadership'];
+            domains.forEach(domain => {
+                const statusEl = document.getElementById(domain + 'Status');
+                if (training.domains_completed.includes(domain)) {
+                    statusEl.textContent = 'Complete';
+                    statusEl.style.color = '#48bb78';
+                } else if (training.current_domain === domain) {
+                    statusEl.textContent = 'Training...';
+                    statusEl.style.color = '#fbbf24';
+                } else {
+                    statusEl.textContent = 'Pending';
+                    statusEl.style.color = '#9ca3af';
+                }
+            });
+        }
+        
+        function updateEmotion(emotion) {
+            const emojis = {
+                happy: '😊',
+                helpful: '🤝',
+                friendly: '😄',
+                professional: '💼',
+                neutral: '😐',
+                excited: '🎉'
+            };
+            
+            document.getElementById('emotionEmoji').textContent = emojis[emotion.current_emotion] || '😐';
+            document.getElementById('emotionLabel').textContent = emotion.current_emotion.charAt(0).toUpperCase() + emotion.current_emotion.slice(1);
+            document.getElementById('emotionConfidence').textContent = Math.round(emotion.confidence * 100) + '% confidence';
+        }
+        
+        function addMessage(conversation) {
+            const conversationEl = document.getElementById('conversation');
+            
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user-message';
+            userMsg.innerHTML = `
+                <div class="message-time">${conversation.timestamp}</div>
+                <div>${conversation.user_message}</div>
+            `;
+            
+            const assistantMsg = document.createElement('div');
+            assistantMsg.className = 'message assistant-message';
+            assistantMsg.innerHTML = `
+                <div class="message-time">${conversation.timestamp}</div>
+                <div>${conversation.assistant_response}
+                    <span class="emotion-badge">${conversation.emotion} (${conversation.confidence})</span>
+                </div>
+            `;
+            
+            conversationEl.appendChild(userMsg);
+            conversationEl.appendChild(assistantMsg);
+            conversationEl.scrollTop = conversationEl.scrollHeight;
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const domain = document.getElementById('domainSelect').value;
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            input.value = '';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        domain: domain
+                    })
+                });
+                
+                const data = await response.json();
+                // Response will be handled via WebSocket
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        }
+        
+        // Enter key to send message
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        async function startTraining() {
+            try {
+                await fetch('/api/training/start', { method: 'POST' });
+            } catch (error) {
+                console.error('Error starting training:', error);
+            }
+        }
+        
+        async function stopTraining() {
+            try {
+                await fetch('/api/training/stop', { method: 'POST' });
+            } catch (error) {
+                console.error('Error stopping training:', error);
+            }
+        }
+        
+        function testModels() {
+            alert('Model testing feature coming soon!');
+        }
+        
+        function exportModels() {
+            alert('Model export feature coming soon!');
+        }
+        
+        // Auto-refresh status
+        setInterval(async () => {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                // Handle status updates
+            } catch (error) {
+                console.error('Error fetching status:', error);
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
