@@ -11,357 +11,563 @@ import time
 import tempfile
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import base64
+import re
+import uuid
+from datetime import datetime, timedelta
+from collections import defaultdict
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, validator, Field
 import uvicorn
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
+# HAI Security & Safety Configuration
+class HAIConfig:
+    """HAI-focused configuration for safety, security, and user-centricity"""
+    
+    # Rate limiting (requests per minute per IP)
+    RATE_LIMIT_PER_MINUTE = 60
+    
+    # Input validation
+    MAX_TEXT_LENGTH = 5000
+    MIN_TEXT_LENGTH = 1
+    
+    # Security patterns to block
+    BLOCKED_PATTERNS = [
+        r'<script[^>]*>.*?</script>',  # XSS attempts
+        r'javascript:',               # JavaScript injection
+        r'data:text/html',           # Data URI attacks
+        r'eval\s*\(',                # Code execution attempts
+    ]
+    
+    # Privacy settings
+    AUTO_CLEANUP_MINUTES = 30  # Auto-delete temp files after 30 minutes
+    LOG_SENSITIVE_DATA = False  # Never log user content
+    
+    # Fallback behavior
+    ENABLE_GRACEFUL_DEGRADATION = True
+    MAX_RETRY_ATTEMPTS = 3
+
+# Rate limiting storage
+rate_limit_storage = defaultdict(list)
+
+class RateLimiter:
+    """HAI-focused rate limiter for user protection"""
+    
+    @staticmethod
+    def is_allowed(client_ip: str) -> bool:
+        now = datetime.now()
+        minute_ago = now - timedelta(minutes=1)
+        
+        # Clean old entries
+        rate_limit_storage[client_ip] = [
+            timestamp for timestamp in rate_limit_storage[client_ip]
+            if timestamp > minute_ago
+        ]
+        
+        # Check rate limit
+        if len(rate_limit_storage[client_ip]) >= HAIConfig.RATE_LIMIT_PER_MINUTE:
+            return False
+        
+        # Add current request
+        rate_limit_storage[client_ip].append(now)
+        return True
+
+class InputValidator:
+    """HAI-focused input validation for safety"""
+    
+    @staticmethod
+    def sanitize_text(text: str) -> str:
+        """Sanitize input text while preserving user intent"""
+        if not text:
+            return ""
+        
+        # Remove potentially harmful patterns
+        for pattern in HAIConfig.BLOCKED_PATTERNS:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        
+        # Normalize whitespace
+        text = ' '.join(text.split())
+        
+        return text
+    
+    @staticmethod
+    def validate_text(text: str) -> tuple[bool, str]:
+        """Validate text input with user-friendly feedback"""
+        if not text or len(text.strip()) < HAIConfig.MIN_TEXT_LENGTH:
+            return False, "Text is too short. Please provide at least 1 character."
+        
+        if len(text) > HAIConfig.MAX_TEXT_LENGTH:
+            return False, f"Text is too long. Maximum {HAIConfig.MAX_TEXT_LENGTH} characters allowed."
+        
+        # Check for suspicious patterns
+        for pattern in HAIConfig.BLOCKED_PATTERNS:
+            if re.search(pattern, text, re.IGNORECASE):
+                return False, "Input contains potentially harmful content. Please rephrase your request."
+        
+        return True, "Valid input"
+
+class TTSRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=5000)
+    domain: str = Field(default="universal", regex="^(universal|healthcare|business|education|creative|leadership)$")
+    voice: Optional[str] = None
+    
+    @validator('text')
+    def validate_and_sanitize_text(cls, v):
+        # Sanitize input
+        sanitized = InputValidator.sanitize_text(v)
+        
+        # Validate
+        is_valid, message = InputValidator.validate_text(sanitized)
+        if not is_valid:
+            raise ValueError(message)
+        
+        return sanitized
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=5000)
+    domain: str = Field(default="universal", regex="^(universal|healthcare|business|education|creative|leadership)$")
+    
+    @validator('message')
+    def validate_and_sanitize_message(cls, v):
+        sanitized = InputValidator.sanitize_text(v)
+        is_valid, message = InputValidator.validate_text(sanitized)
+        if not is_valid:
+            raise ValueError(message)
+        return sanitized
+
+# HAI-Enhanced TARA Voice Server
 app = FastAPI(
-    title="TARA Voice Server",
-    description="TTS server for TARA AI companion integration",
-    version="1.0.0"
+    title="TARA Universal Voice Server",
+    description="HAI-Powered Voice Server - Help Anytime, Everywhere",
+    version="2.0.0"
 )
 
-# Add CORS middleware for frontend integration
+# CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3005", "http://localhost:3001"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# Global TTS manager
-tts_manager = None
-
-class TTSManager:
-    """TTS manager using available TTS systems."""
-    
-    def __init__(self):
-        self.available_systems = {}
-        self.preferred_system = None
-        self.temp_dir = Path(tempfile.gettempdir()) / "tara_audio"
-        self.temp_dir.mkdir(exist_ok=True)
-        self._initialize_tts()
-    
-    def _initialize_tts(self):
-        """Initialize available TTS systems."""
-        logger.info("Initializing TTS systems...")
-        
-        # Try Edge TTS first
-        try:
-            import edge_tts
-            self.available_systems['edge_tts'] = {
-                'module': edge_tts,
-                'voices': {
-                    'healthcare': 'en-US-AriaNeural',
-                    'business': 'en-US-JennyNeural', 
-                    'education': 'en-US-AriaNeural',
-                    'creative': 'en-US-JennyNeural',
-                    'leadership': 'en-US-GuyNeural',
-                    'universal': 'en-US-AriaNeural'
-                }
-            }
-            self.preferred_system = 'edge_tts'
-            logger.info("✅ Edge TTS available")
-        except ImportError:
-            logger.warning("❌ Edge TTS not available")
-        
-        # Try pyttsx3 as fallback
-        try:
-            import pyttsx3
-            engine = pyttsx3.init()
-            voices = engine.getProperty('voices')
-            if voices:
-                self.available_systems['pyttsx3'] = {
-                    'module': pyttsx3,
-                    'engine': engine,
-                    'voices': voices
-                }
-                if not self.preferred_system:
-                    self.preferred_system = 'pyttsx3'
-                logger.info("✅ pyttsx3 available")
-            else:
-                logger.warning("❌ pyttsx3 no voices found")
-        except Exception as e:
-            logger.warning(f"❌ pyttsx3 error: {e}")
-        
-        logger.info(f"TTS Systems available: {list(self.available_systems.keys())}")
-        logger.info(f"Preferred system: {self.preferred_system}")
-    
-    async def synthesize_speech(self, text: str, domain: str = "universal") -> Dict[str, Any]:
-        """Synthesize speech from text."""
-        if not self.available_systems:
-            return {"success": False, "error": "No TTS systems available"}
-        
-        start_time = time.time()
-        
-        try:
-            if self.preferred_system == 'edge_tts':
-                return await self._synthesize_edge_tts(text, domain, start_time)
-            elif self.preferred_system == 'pyttsx3':
-                return await self._synthesize_pyttsx3(text, domain, start_time)
-            else:
-                return {"success": False, "error": "No preferred TTS system"}
-        except Exception as e:
-            logger.error(f"TTS synthesis error: {e}")
-            return {"success": False, "error": str(e)}
-    
-    async def _synthesize_edge_tts(self, text: str, domain: str, start_time: float) -> Dict[str, Any]:
-        """Synthesize using Edge TTS."""
-        try:
-            edge_tts = self.available_systems['edge_tts']['module']
-            voices = self.available_systems['edge_tts']['voices']
-            voice = voices.get(domain, voices['universal'])
-            
-            # Create temporary file
-            audio_file = self.temp_dir / f"temp_audio_{int(time.time() * 1000)}.mp3"
-            
-            # Generate speech
-            communicate = edge_tts.Communicate(text, voice)
-            await communicate.save(str(audio_file))
-            
-            # Check if file was created and has content
-            if not audio_file.exists() or audio_file.stat().st_size == 0:
-                # Try fallback voice
-                fallback_voice = 'en-US-AriaNeural'
-                logger.warning(f"Voice {voice} failed, trying fallback {fallback_voice}")
-                audio_file = self.temp_dir / f"temp_audio_{int(time.time() * 1000)}_fallback.mp3"
-                communicate = edge_tts.Communicate(text, fallback_voice)
-                await communicate.save(str(audio_file))
-                voice = fallback_voice
-            
-            processing_time = time.time() - start_time
-            
-            return {
-                "success": True,
-                "audio_url": f"http://localhost:5000/audio/{audio_file.name}",
-                "processing_time": processing_time,
-                "voice": voice,
-                "system": "edge_tts"
-            }
-        except Exception as e:
-            logger.error(f"Edge TTS error: {e}")
-            # Try fallback to pyttsx3 if available
-            if 'pyttsx3' in self.available_systems:
-                logger.info("Falling back to pyttsx3")
-                return await self._synthesize_pyttsx3(text, domain, start_time)
-            return {"success": False, "error": str(e)}
-    
-    async def _synthesize_pyttsx3(self, text: str, domain: str, start_time: float) -> Dict[str, Any]:
-        """Synthesize using pyttsx3."""
-        try:
-            engine = self.available_systems['pyttsx3']['engine']
-            
-            # Create temporary file
-            audio_file = self.temp_dir / f"temp_audio_{int(time.time() * 1000)}.wav"
-            
-            # Configure voice properties
-            engine.setProperty('rate', 180)
-            engine.setProperty('volume', 0.9)
-            
-            # Generate speech
-            engine.save_to_file(text, str(audio_file))
-            engine.runAndWait()
-            
-            processing_time = time.time() - start_time
-            
-            return {
-                "success": True,
-                "audio_url": f"http://localhost:5000/audio/{audio_file.name}",
-                "processing_time": processing_time,
-                "system": "pyttsx3"
-            }
-        except Exception as e:
-            logger.error(f"pyttsx3 error: {e}")
-            return {"success": False, "error": str(e)}
-    
-    def get_status(self) -> Dict[str, Any]:
-        """Get TTS system status."""
-        return {
-            "status": "ready" if self.available_systems else "no_tts_available",
-            "edge_tts_available": "edge_tts" in self.available_systems,
-            "pyttsx3_available": "pyttsx3" in self.available_systems,
-            "preferred_system": self.preferred_system,
-            "domains": ["healthcare", "business", "education", "creative", "leadership", "universal"]
-        }
-
-# Initialize TTS manager
-@app.on_event("startup")
-async def startup_event():
-    global tts_manager
-    logger.info("Starting TARA Voice Server...")
-    tts_manager = TTSManager()
-    logger.info("TARA Voice Server started successfully!")
-
-# Root endpoint
-@app.get("/")
-async def root():
-    return {
-        "message": "TARA Voice Server",
-        "version": "1.0.0",
-        "status": "running",
-        "endpoints": ["/tts/synthesize", "/tts/status", "/chat_with_voice"]
+# HAI-Enhanced Domain Configuration with Personality Traits
+DOMAIN_VOICES = {
+    "universal": {
+        "voice": "en-US-AriaNeural",
+        "personality": "Friendly, helpful, and adaptable to any situation",
+        "fallback_voice": "en-US-JennyNeural"
+    },
+    "healthcare": {
+        "voice": "en-US-AriaNeural", 
+        "personality": "Compassionate, professional, and reassuring",
+        "fallback_voice": "en-US-SaraNeural"
+    },
+    "business": {
+        "voice": "en-US-JennyNeural",
+        "personality": "Professional, confident, and strategic",
+        "fallback_voice": "en-US-AriaNeural"
+    },
+    "education": {
+        "voice": "en-US-AriaNeural",
+        "personality": "Patient, encouraging, and knowledgeable",
+        "fallback_voice": "en-US-JennyNeural"
+    },
+    "creative": {
+        "voice": "en-US-JennyNeural",
+        "personality": "Inspiring, imaginative, and enthusiastic",
+        "fallback_voice": "en-US-AriaNeural"
+    },
+    "leadership": {
+        "voice": "en-US-GuyNeural",
+        "personality": "Authoritative, wise, and motivational",
+        "fallback_voice": "en-US-AriaNeural"
     }
+}
 
-# TTS Status endpoint
+# Global TTS system state
+tts_systems = {
+    "edge_tts": EDGE_TTS_AVAILABLE,
+    "pyttsx3": PYTTSX3_AVAILABLE
+}
+
+preferred_tts = "edge_tts" if EDGE_TTS_AVAILABLE else "pyttsx3"
+
+# File cleanup tracking
+temp_files_created = []
+
+class FileCleanupManager:
+    """HAI-focused automatic file cleanup for privacy"""
+    
+    @staticmethod
+    def schedule_cleanup(filepath: str):
+        """Schedule file for automatic cleanup"""
+        temp_files_created.append({
+            'path': filepath,
+            'created': datetime.now()
+        })
+    
+    @staticmethod
+    def cleanup_old_files():
+        """Clean up files older than configured time"""
+        cutoff_time = datetime.now() - timedelta(minutes=HAIConfig.AUTO_CLEANUP_MINUTES)
+        
+        for file_info in temp_files_created[:]:
+            if file_info['created'] < cutoff_time:
+                try:
+                    if os.path.exists(file_info['path']):
+                        os.remove(file_info['path'])
+                        logger.info(f"🧹 Cleaned up old file: {file_info['path']}")
+                except Exception as e:
+                    logger.warning(f"Failed to cleanup file {file_info['path']}: {e}")
+                finally:
+                    temp_files_created.remove(file_info)
+
+async def synthesize_with_edge_tts(text: str, voice: str, output_path: str) -> bool:
+    """HAI-Enhanced Edge TTS synthesis with robust error handling"""
+    try:
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(output_path)
+        
+        # Verify file was created and has content
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+            logger.info(f"✅ Edge TTS synthesis successful: {voice}")
+            return True
+        else:
+            logger.error(f"❌ Edge TTS created empty file for voice: {voice}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ Edge TTS synthesis failed for {voice}: {str(e)}")
+        return False
+
+def synthesize_with_pyttsx3(text: str, output_path: str) -> bool:
+    """HAI-Enhanced pyttsx3 synthesis with error handling"""
+    try:
+        engine = pyttsx3.init()
+        
+        # Configure voice properties for better quality
+        voices = engine.getProperty('voices')
+        if voices:
+            # Prefer female voice if available
+            for voice in voices:
+                if 'female' in voice.name.lower() or 'zira' in voice.name.lower():
+                    engine.setProperty('voice', voice.id)
+                    break
+        
+        # Set speech rate and volume
+        engine.setProperty('rate', 180)  # Moderate speaking rate
+        engine.setProperty('volume', 0.9)  # High volume
+        
+        # Save to file
+        engine.save_to_file(text, output_path)
+        engine.runAndWait()
+        
+        # Verify file creation
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+            logger.info("✅ pyttsx3 synthesis successful")
+            return True
+        else:
+            logger.error("❌ pyttsx3 created empty file")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ pyttsx3 synthesis failed: {str(e)}")
+        return False
+
+# Middleware for rate limiting and security
+@app.middleware("http")
+async def hai_security_middleware(request: Request, call_next):
+    """HAI-focused security and rate limiting middleware"""
+    
+    # Skip rate limiting for status endpoints
+    if request.url.path == "/tts/status":
+        response = await call_next(request)
+        return response
+    
+    # Rate limiting
+    client_ip = request.client.host
+    if not RateLimiter.is_allowed(client_ip):
+        return JSONResponse(
+            status_code=429,
+            content={
+                "error": "Rate limit exceeded",
+                "message": "Too many requests. Please wait a moment before trying again.",
+                "hai_note": "This limit protects both you and the system. TARA is here to help sustainably."
+            }
+        )
+    
+    # Process request
+    response = await call_next(request)
+    
+    # Cleanup old files periodically
+    if len(temp_files_created) > 10:  # Cleanup every 10 requests
+        FileCleanupManager.cleanup_old_files()
+    
+    return response
+
 @app.get("/tts/status")
-async def tts_status():
-    """Get TTS system status."""
+async def get_tts_status():
+    """HAI-Enhanced TTS status with system health information"""
+    return {
+        "status": "ready",
+        "hai_principle": "Help Anytime, Everywhere",
+        "systems": {
+            "edge_tts": {
+                "available": tts_systems["edge_tts"],
+                "description": "High-quality neural voices"
+            },
+            "pyttsx3": {
+                "available": tts_systems["pyttsx3"], 
+                "description": "Reliable offline text-to-speech"
+            }
+        },
+        "preferred_system": preferred_tts,
+        "domains": list(DOMAIN_VOICES.keys()),
+        "safety_features": {
+            "rate_limiting": True,
+            "input_validation": True,
+            "auto_cleanup": True,
+            "offline_capable": True
+        },
+        "version": "2.0.0 HAI-Enhanced"
+    }
+
+@app.post("/tts/synthesize")
+async def synthesize_speech(request: TTSRequest, background_tasks: BackgroundTasks):
+    """HAI-Enhanced speech synthesis with robust fallback system"""
+    
     try:
-        if not tts_manager:
-            return {"success": False, "error": "TTS manager not initialized"}
+        domain = request.domain
+        text = request.text
         
-        status = tts_manager.get_status()
+        # Get domain configuration
+        domain_config = DOMAIN_VOICES.get(domain, DOMAIN_VOICES["universal"])
+        voice = request.voice or domain_config["voice"]
+        
+        # Generate unique filename
+        timestamp = int(time.time() * 1000)
+        unique_id = str(uuid.uuid4())[:8]
+        
+        success = False
+        audio_file = None
+        synthesis_method = None
+        
+        # Attempt 1: Edge TTS with primary voice
+        if tts_systems["edge_tts"]:
+            audio_file = f"temp_audio_{timestamp}_{unique_id}.mp3"
+            audio_path = os.path.join(tempfile.gettempdir(), audio_file)
+            
+            success = await synthesize_with_edge_tts(text, voice, audio_path)
+            if success:
+                synthesis_method = f"Edge TTS ({voice})"
+            else:
+                # Attempt 2: Edge TTS with fallback voice
+                fallback_voice = domain_config.get("fallback_voice", "en-US-AriaNeural")
+                if fallback_voice != voice:
+                    logger.info(f"🔄 Trying fallback voice: {fallback_voice}")
+                    success = await synthesize_with_edge_tts(text, fallback_voice, audio_path)
+                    if success:
+                        synthesis_method = f"Edge TTS ({fallback_voice} - fallback)"
+        
+        # Attempt 3: pyttsx3 fallback
+        if not success and tts_systems["pyttsx3"]:
+            if audio_file and audio_file.endswith('.mp3'):
+                audio_file = audio_file.replace('.mp3', '.wav')
+            else:
+                audio_file = f"temp_audio_{timestamp}_{unique_id}.wav"
+            
+            audio_path = os.path.join(tempfile.gettempdir(), audio_file)
+            success = synthesize_with_pyttsx3(text, audio_path)
+            if success:
+                synthesis_method = "pyttsx3 (offline fallback)"
+        
+        # Final fallback: Return text response
+        if not success:
+            logger.error("❌ All TTS synthesis methods failed")
+            return JSONResponse(
+                status_code=200,  # Not a server error, graceful degradation
+                content={
+                    "success": False,
+                    "audio_url": None,
+                    "text_response": text,
+                    "synthesis_method": "text-only (graceful degradation)",
+                    "hai_message": "TARA is still here to help! Voice synthesis is temporarily unavailable, but the text response is ready.",
+                    "domain": domain,
+                    "fallback_used": True
+                }
+            )
+        
+        # Schedule file cleanup
+        FileCleanupManager.schedule_cleanup(audio_path)
+        
         return {
             "success": True,
-            **status
-        }
-    except Exception as e:
-        logger.error(f"TTS status error: {e}")
-        return {"success": False, "error": str(e)}
-
-# TTS Synthesize endpoint
-@app.post("/tts/synthesize")
-async def synthesize_speech_endpoint(request: Request):
-    """
-    Synthesize speech from text.
-    
-    Request body:
-    {
-        "text": "Hello, I'm TARA!",
-        "domain": "universal"
-    }
-    """
-    try:
-        request_data = await request.json()
-        text = request_data.get("text", "")
-        domain = request_data.get("domain", "universal")
-        
-        if not text:
-            raise HTTPException(status_code=400, detail="Text is required")
-        
-        if not tts_manager:
-            raise HTTPException(status_code=503, detail="TTS manager not initialized")
-        
-        result = await tts_manager.synthesize_speech(text, domain)
-        
-        if not result["success"]:
-            raise HTTPException(status_code=500, detail=result["error"])
-        
-        return result
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"TTS endpoint error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Chat with Voice endpoint
-@app.post("/chat_with_voice")
-async def chat_with_voice_endpoint(request: Request):
-    """
-    Chat with TARA and get voice response.
-    
-    Request body:
-    {
-        "message": "How are you today?",
-        "domain": "universal",
-        "voice_response": true
-    }
-    """
-    try:
-        request_data = await request.json()
-        message = request_data.get("message", "")
-        domain = request_data.get("domain", "universal")
-        voice_response = request_data.get("voice_response", True)
-        
-        if not message:
-            raise HTTPException(status_code=400, detail="Message is required")
-        
-        # Simple TARA response (you can enhance this)
-        responses = {
-            "healthcare": "I'm here to help with your health and wellness needs. How can I assist you today?",
-            "business": "I'm ready to help you with your business objectives. What would you like to discuss?",
-            "education": "I'm excited to help you learn something new! What topic interests you?",
-            "creative": "Let's explore your creative side! What inspiring project are you working on?",
-            "leadership": "I'm here to support your leadership journey. What challenges are you facing?",
-            "universal": "Hello! I'm TARA, your AI companion. I'm here to help with whatever you need!"
-        }
-        
-        text_response = responses.get(domain, responses["universal"])
-        
-        result = {
-            "success": True,
-            "text_response": text_response,
+            "audio_url": f"/audio/{audio_file}",
+            "text_response": text,
+            "synthesis_method": synthesis_method,
             "domain": domain,
-            "processing_time": 0.1
+            "personality": domain_config["personality"],
+            "hai_message": f"TARA is ready to help in the {domain} domain!",
+            "fallback_used": synthesis_method != f"Edge TTS ({voice})"
         }
         
-        # Add voice synthesis if requested
-        if voice_response and tts_manager:
-            voice_result = await tts_manager.synthesize_speech(text_response, domain)
-            if voice_result["success"]:
-                result["audio_url"] = voice_result["audio_url"]
-                result["voice_processing_time"] = voice_result["processing_time"]
-            else:
-                result["voice_error"] = voice_result["error"]
-        
-        return result
-        
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Chat with voice error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"❌ Synthesis error: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": "Synthesis failed",
+                "hai_message": "TARA encountered an issue but is working to resolve it. Please try again.",
+                "support": "If this persists, TARA's text responses are still available."
+            }
+        )
 
-# Audio file serving endpoint
+@app.post("/chat_with_voice")
+async def chat_with_voice(request: ChatRequest, background_tasks: BackgroundTasks):
+    """HAI-Enhanced chat with voice response"""
+    
+    try:
+        domain = request.domain
+        message = request.message
+        
+        # Generate contextual response based on domain
+        domain_responses = {
+            "universal": f"I'm here to help with anything you need. Regarding '{message}', let me provide you with comprehensive assistance.",
+            "healthcare": f"I understand your healthcare concern about '{message}'. Let me provide you with helpful, evidence-based information while reminding you to consult with healthcare professionals for medical advice.",
+            "business": f"Regarding your business inquiry about '{message}', let me share strategic insights and practical recommendations to help you achieve your goals.",
+            "education": f"Great question about '{message}'! Let me break this down in a clear, engaging way that helps you learn and understand the concepts thoroughly.",
+            "creative": f"I love your creative thinking about '{message}'! Let me help spark some innovative ideas and approaches you might explore.",
+            "leadership": f"Your leadership question about '{message}' is excellent. Let me share some strategic perspectives that can help you guide your team effectively."
+        }
+        
+        response_text = domain_responses.get(domain, domain_responses["universal"])
+        
+        # Create TTS request
+        tts_request = TTSRequest(text=response_text, domain=domain)
+        
+        # Get voice synthesis
+        synthesis_result = await synthesize_speech(tts_request, background_tasks)
+        
+        return {
+            "message": message,
+            "response": response_text,
+            "domain": domain,
+            "audio_synthesis": synthesis_result,
+            "hai_context": f"TARA is engaging with you in {domain} mode, providing specialized assistance tailored to your needs."
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Chat error: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Chat processing failed",
+                "hai_message": "TARA is experiencing a temporary issue but remains committed to helping you. Please try again."
+            }
+        )
+
 @app.get("/audio/{filename}")
 async def serve_audio(filename: str):
-    """Serve generated audio files."""
+    """HAI-Enhanced secure audio file serving"""
+    
     try:
-        audio_file = tts_manager.temp_dir / filename
-        if not audio_file.exists():
+        # Security: Validate filename to prevent path traversal
+        if not re.match(r'^temp_audio_\d+_[a-f0-9]{8}\.(mp3|wav)$', filename):
+            raise HTTPException(status_code=400, detail="Invalid filename format")
+        
+        file_path = os.path.join(tempfile.gettempdir(), filename)
+        
+        if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="Audio file not found")
         
+        # Determine media type
+        media_type = "audio/mpeg" if filename.endswith('.mp3') else "audio/wav"
+        
         return FileResponse(
-            path=str(audio_file),
-            media_type="audio/mpeg" if filename.endswith('.mp3') else "audio/wav",
-            filename=filename
+            file_path,
+            media_type=media_type,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
         )
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Audio serving error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"❌ Audio serving error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to serve audio file")
 
-# Error handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Global error: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"success": False, "error": str(exc)}
-    )
+# HAI-Enhanced startup event
+@app.on_event("startup")
+async def startup_event():
+    """HAI-Enhanced startup with comprehensive system initialization"""
+    logger.info("🤝 Starting TARA Voice Server with HAI principles...")
+    logger.info("🎯 Mission: Help Anytime, Everywhere")
+    
+    # Initialize TTS systems
+    logger.info("🔧 Initializing TTS systems...")
+    
+    if tts_systems["edge_tts"]:
+        logger.info("✅ Edge TTS available - High-quality neural voices ready")
+    else:
+        logger.warning("⚠️ Edge TTS not available")
+    
+    if tts_systems["pyttsx3"]:
+        logger.info("✅ pyttsx3 available - Reliable offline TTS ready")
+    else:
+        logger.warning("⚠️ pyttsx3 not available")
+    
+    available_systems = [name for name, available in tts_systems.items() if available]
+    
+    if not available_systems:
+        logger.error("❌ No TTS systems available! Please install edge-tts or pyttsx3")
+        return
+    
+    logger.info(f"🎤 TTS Systems available: {available_systems}")
+    logger.info(f"⭐ Preferred system: {preferred_tts}")
+    
+    # Log HAI features
+    logger.info("🛡️ HAI Safety Features Active:")
+    logger.info(f"   • Rate limiting: {HAIConfig.RATE_LIMIT_PER_MINUTE} requests/minute")
+    logger.info(f"   • Input validation: Max {HAIConfig.MAX_TEXT_LENGTH} characters")
+    logger.info(f"   • Auto cleanup: {HAIConfig.AUTO_CLEANUP_MINUTES} minutes")
+    logger.info(f"   • Graceful degradation: {HAIConfig.ENABLE_GRACEFUL_DEGRADATION}")
+    
+    logger.info("🌟 TARA Voice Server started successfully with HAI enhancement!")
+    logger.info("🤝 Ready to help humans anytime, everywhere they need assistance!")
 
 if __name__ == "__main__":
-    print("🎤 Starting TARA Voice Server on http://localhost:5000")
+    # HAI-Enhanced server startup
+    print("🤝 Starting TARA HAI-Enhanced Voice Server on http://localhost:5000")
     print("📋 Available endpoints:")
     print("   • GET  /tts/status - Check TTS system status")
-    print("   • POST /tts/synthesize - Synthesize speech from text")
+    print("   • POST /tts/synthesize - Synthesize speech from text")  
     print("   • POST /chat_with_voice - Chat with voice response")
     print("   • GET  /audio/{filename} - Serve audio files")
+    print("🛡️ HAI Safety Features:")
+    print(f"   • Rate limiting: {HAIConfig.RATE_LIMIT_PER_MINUTE} req/min per IP")
+    print(f"   • Input validation & sanitization")
+    print(f"   • Automatic file cleanup ({HAIConfig.AUTO_CLEANUP_MINUTES} min)")
+    print(f"   • Multi-level fallback system")
     print("🚀 Ready for tara-ai-companion integration!")
+    print("🌟 Mission: Help Anytime, Everywhere with HAI principles!")
     
     uvicorn.run(
-        app,
-        host="0.0.0.0",
+        app, 
+        host="0.0.0.0", 
         port=5000,
         log_level="info"
     ) 
