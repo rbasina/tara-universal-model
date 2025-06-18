@@ -23,7 +23,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, validator, Field
+# TTS System Imports
+try:
+    import edge_tts
+    EDGE_TTS_AVAILABLE = True
+except ImportError:
+    EDGE_TTS_AVAILABLE = False
+    print("⚠️ Edge TTS not available. Install with: pip install edge-tts")
+
+try:
+    import pyttsx3
+    PYTTSX3_AVAILABLE = True
+except ImportError:
+    PYTTSX3_AVAILABLE = False
+    print("⚠️ pyttsx3 not available. Install with: pip install pyttsx3")
+
 import uvicorn
+
+# Import TARA Universal AI Engine
+try:
+    from tara_universal_model.core import get_universal_engine, AIRequest, AIResponse
+    AI_ENGINE_AVAILABLE = True
+except ImportError:
+    AI_ENGINE_AVAILABLE = False
+    print("⚠️ Universal AI Engine not available - using fallback responses")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -318,6 +341,20 @@ async def hai_security_middleware(request: Request, call_next):
 @app.get("/tts/status")
 async def get_tts_status():
     """HAI-Enhanced TTS status with system health information"""
+    
+    # Check AI Engine status
+    ai_engine_status = "not_available"
+    ai_capabilities = {}
+    
+    if AI_ENGINE_AVAILABLE:
+        try:
+            ai_engine = await get_universal_engine()
+            ai_capabilities = await ai_engine.get_capabilities()
+            ai_engine_status = "ready"
+        except Exception as e:
+            ai_engine_status = "error"
+            logger.error(f"AI Engine status check failed: {e}")
+    
     return {
         "status": "ready",
         "hai_principle": "Help Anytime, Everywhere",
@@ -329,17 +366,31 @@ async def get_tts_status():
             "pyttsx3": {
                 "available": tts_systems["pyttsx3"], 
                 "description": "Reliable offline text-to-speech"
+            },
+            "ai_engine": {
+                "available": AI_ENGINE_AVAILABLE,
+                "status": ai_engine_status,
+                "description": "Universal AI Engine for robust human support",
+                "capabilities": ai_capabilities
             }
         },
-        "preferred_system": preferred_tts,
+        "preferred_tts_system": preferred_tts,
         "domains": list(DOMAIN_VOICES.keys()),
+        "ai_features": {
+            "universal_ai_engine": AI_ENGINE_AVAILABLE,
+            "multi_domain_expertise": True,
+            "context_aware_responses": True,
+            "emergency_protocols": True,
+            "personalized_assistance": True
+        },
         "safety_features": {
             "rate_limiting": True,
             "input_validation": True,
             "auto_cleanup": True,
-            "offline_capable": True
+            "offline_capable": True,
+            "privacy_protection": True
         },
-        "version": "2.0.0 HAI-Enhanced"
+        "version": "2.0.0 HAI-Enhanced with Universal AI Engine"
     }
 
 @app.post("/tts/synthesize")
@@ -435,23 +486,67 @@ async def synthesize_speech(request: TTSRequest, background_tasks: BackgroundTas
 
 @app.post("/chat_with_voice")
 async def chat_with_voice(request: ChatRequest, background_tasks: BackgroundTasks):
-    """HAI-Enhanced chat with voice response"""
+    """HAI-Enhanced chat with voice response using Universal AI Engine"""
     
     try:
         domain = request.domain
         message = request.message
         
-        # Generate contextual response based on domain
-        domain_responses = {
-            "universal": f"I'm here to help with anything you need. Regarding '{message}', let me provide you with comprehensive assistance.",
-            "healthcare": f"I understand your healthcare concern about '{message}'. Let me provide you with helpful, evidence-based information while reminding you to consult with healthcare professionals for medical advice.",
-            "business": f"Regarding your business inquiry about '{message}', let me share strategic insights and practical recommendations to help you achieve your goals.",
-            "education": f"Great question about '{message}'! Let me break this down in a clear, engaging way that helps you learn and understand the concepts thoroughly.",
-            "creative": f"I love your creative thinking about '{message}'! Let me help spark some innovative ideas and approaches you might explore.",
-            "leadership": f"Your leadership question about '{message}' is excellent. Let me share some strategic perspectives that can help you guide your team effectively."
-        }
-        
-        response_text = domain_responses.get(domain, domain_responses["universal"])
+        # Use Universal AI Engine if available
+        if AI_ENGINE_AVAILABLE:
+            try:
+                # Get Universal AI Engine
+                ai_engine = await get_universal_engine()
+                
+                # Create AI request
+                ai_request = AIRequest(
+                    user_input=message,
+                    domain=domain,
+                    context={"source": "voice_chat", "timestamp": datetime.now().isoformat()},
+                    urgency_level="normal"
+                )
+                
+                # Get AI response
+                ai_response = await ai_engine.process_request(ai_request)
+                
+                response_text = ai_response.response_text
+                
+                # Enhanced response data
+                enhanced_response = {
+                    "message": message,
+                    "response": response_text,
+                    "domain": domain,
+                    "confidence": ai_response.confidence,
+                    "processing_time": ai_response.processing_time,
+                    "suggestions": ai_response.suggestions,
+                    "follow_up_questions": ai_response.follow_up_questions,
+                    "resources": ai_response.resources,
+                    "emotional_tone": ai_response.emotional_tone,
+                    "hai_context": ai_response.hai_context,
+                    "ai_engine_used": True
+                }
+                
+            except Exception as e:
+                logger.error(f"AI Engine error: {e}")
+                # Fallback to simple responses
+                response_text = await _generate_fallback_response(message, domain)
+                enhanced_response = {
+                    "message": message,
+                    "response": response_text,
+                    "domain": domain,
+                    "hai_context": f"TARA is engaging with you in {domain} mode (fallback mode)",
+                    "ai_engine_used": False
+                }
+        else:
+            # Use fallback responses
+            response_text = await _generate_fallback_response(message, domain)
+            enhanced_response = {
+                "message": message,
+                "response": response_text,
+                "domain": domain,
+                "hai_context": f"TARA is engaging with you in {domain} mode (fallback mode)",
+                "ai_engine_used": False
+            }
         
         # Create TTS request
         tts_request = TTSRequest(text=response_text, domain=domain)
@@ -459,13 +554,10 @@ async def chat_with_voice(request: ChatRequest, background_tasks: BackgroundTask
         # Get voice synthesis
         synthesis_result = await synthesize_speech(tts_request, background_tasks)
         
-        return {
-            "message": message,
-            "response": response_text,
-            "domain": domain,
-            "audio_synthesis": synthesis_result,
-            "hai_context": f"TARA is engaging with you in {domain} mode, providing specialized assistance tailored to your needs."
-        }
+        # Combine response with audio synthesis
+        enhanced_response["audio_synthesis"] = synthesis_result
+        
+        return enhanced_response
         
     except Exception as e:
         logger.error(f"❌ Chat error: {str(e)}")
@@ -476,6 +568,128 @@ async def chat_with_voice(request: ChatRequest, background_tasks: BackgroundTask
                 "hai_message": "TARA is experiencing a temporary issue but remains committed to helping you. Please try again."
             }
         )
+
+async def _generate_fallback_response(message: str, domain: str) -> str:
+    """Generate fallback response when AI Engine is not available"""
+    domain_responses = {
+        "universal": f"I'm here to help with anything you need. Regarding '{message}', let me provide you with comprehensive assistance.",
+        "healthcare": f"I understand your healthcare concern about '{message}'. Let me provide you with helpful, evidence-based information while reminding you to consult with healthcare professionals for medical advice.",
+        "business": f"Regarding your business inquiry about '{message}', let me share strategic insights and practical recommendations to help you achieve your goals.",
+        "education": f"Great question about '{message}'! Let me break this down in a clear, engaging way that helps you learn and understand the concepts thoroughly.",
+        "creative": f"I love your creative thinking about '{message}'! Let me help spark some innovative ideas and approaches you might explore.",
+        "leadership": f"Your leadership question about '{message}' is excellent. Let me share some strategic perspectives that can help you guide your team effectively."
+    }
+    
+    return domain_responses.get(domain, domain_responses["universal"])
+
+@app.post("/ai/chat")
+async def ai_chat(request: ChatRequest):
+    """Direct AI chat without voice synthesis - Core backend AI processing"""
+    
+    try:
+        domain = request.domain
+        message = request.message
+        
+        # Use Universal AI Engine if available
+        if AI_ENGINE_AVAILABLE:
+            try:
+                # Get Universal AI Engine
+                ai_engine = await get_universal_engine()
+                
+                # Create AI request
+                ai_request = AIRequest(
+                    user_input=message,
+                    domain=domain,
+                    context={"source": "direct_chat", "timestamp": datetime.now().isoformat()},
+                    urgency_level="normal"
+                )
+                
+                # Get AI response
+                ai_response = await ai_engine.process_request(ai_request)
+                
+                return {
+                    "success": True,
+                    "message": message,
+                    "response": ai_response.response_text,
+                    "domain": domain,
+                    "confidence": ai_response.confidence,
+                    "processing_time": ai_response.processing_time,
+                    "suggestions": ai_response.suggestions,
+                    "follow_up_questions": ai_response.follow_up_questions,
+                    "resources": ai_response.resources,
+                    "emotional_tone": ai_response.emotional_tone,
+                    "hai_context": ai_response.hai_context,
+                    "ai_engine_used": True,
+                    "backend_type": "universal_ai_engine"
+                }
+                
+            except Exception as e:
+                logger.error(f"AI Engine error in direct chat: {e}")
+                # Fallback to simple responses
+                response_text = await _generate_fallback_response(message, domain)
+                return {
+                    "success": True,
+                    "message": message,
+                    "response": response_text,
+                    "domain": domain,
+                    "hai_context": f"TARA is engaging with you in {domain} mode (fallback mode)",
+                    "ai_engine_used": False,
+                    "backend_type": "fallback_responses"
+                }
+        else:
+            # Use fallback responses
+            response_text = await _generate_fallback_response(message, domain)
+            return {
+                "success": True,
+                "message": message,
+                "response": response_text,
+                "domain": domain,
+                "hai_context": f"TARA is engaging with you in {domain} mode (fallback mode)",
+                "ai_engine_used": False,
+                "backend_type": "fallback_responses"
+            }
+        
+    except Exception as e:
+        logger.error(f"❌ AI Chat error: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": "AI chat processing failed",
+                "hai_message": "TARA is experiencing a temporary issue but remains committed to helping you. Please try again."
+            }
+        )
+
+@app.get("/ai/health")
+async def ai_health_check():
+    """AI Engine health check endpoint"""
+    
+    if not AI_ENGINE_AVAILABLE:
+        return {
+            "ai_engine_available": False,
+            "status": "not_available",
+            "message": "Universal AI Engine is not installed or available"
+        }
+    
+    try:
+        ai_engine = await get_universal_engine()
+        health_status = await ai_engine.health_check()
+        
+        return {
+            "ai_engine_available": True,
+            "status": "healthy",
+            "health_check": health_status,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"AI health check failed: {e}")
+        return {
+            "ai_engine_available": True,
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 @app.get("/audio/{filename}")
 async def serve_audio(filename: str):
@@ -551,19 +765,25 @@ async def startup_event():
 
 if __name__ == "__main__":
     # HAI-Enhanced server startup
-    print("🤝 Starting TARA HAI-Enhanced Voice Server on http://localhost:5000")
+    print("🤝 Starting TARA Universal Backend Server on http://localhost:5000")
+    print("🧠 Universal AI Engine Status:", "✅ Available" if AI_ENGINE_AVAILABLE else "⚠️ Not Available (using fallbacks)")
     print("📋 Available endpoints:")
-    print("   • GET  /tts/status - Check TTS system status")
-    print("   • POST /tts/synthesize - Synthesize speech from text")  
-    print("   • POST /chat_with_voice - Chat with voice response")
-    print("   • GET  /audio/{filename} - Serve audio files")
+    print("   🔊 Voice Services:")
+    print("      • GET  /tts/status - Check TTS & AI system status")
+    print("      • POST /tts/synthesize - Synthesize speech from text")  
+    print("      • POST /chat_with_voice - Chat with voice response")
+    print("      • GET  /audio/{filename} - Serve audio files")
+    print("   🧠 AI Services:")
+    print("      • POST /ai/chat - Direct AI chat (no voice)")
+    print("      • GET  /ai/health - AI Engine health check")
     print("🛡️ HAI Safety Features:")
     print(f"   • Rate limiting: {HAIConfig.RATE_LIMIT_PER_MINUTE} req/min per IP")
     print(f"   • Input validation & sanitization")
     print(f"   • Automatic file cleanup ({HAIConfig.AUTO_CLEANUP_MINUTES} min)")
     print(f"   • Multi-level fallback system")
-    print("🚀 Ready for tara-ai-companion integration!")
-    print("🌟 Mission: Help Anytime, Everywhere with HAI principles!")
+    print(f"   • Universal AI Engine with 6 domain experts")
+    print("🚀 Ready for tara-ai-companion frontend integration!")
+    print("🌟 Mission: Robust Backend to Support All Human Needs Through AI!")
     
     uvicorn.run(
         app, 

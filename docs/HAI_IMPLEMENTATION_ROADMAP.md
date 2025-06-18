@@ -36,7 +36,7 @@
 - Resource management: CPU/memory limits to prevent system overload
 ```
 
-#### **1.3 Security Hardening**
+#### **1.3 Security Hardening** 
 ```python
 # Security enhancements
 - Input sanitization for all voice/text inputs
