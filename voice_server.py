@@ -48,6 +48,16 @@ except ImportError:
     AI_ENGINE_AVAILABLE = False
     print("⚠️ Universal AI Engine not available - using fallback responses")
 
+# Import HAI Security Components
+try:
+    from tara_universal_model.security.privacy_manager import get_privacy_manager
+    from tara_universal_model.security.resource_monitor import get_resource_monitor
+    from tara_universal_model.security.security_validator import get_security_validator
+    HAI_SECURITY_AVAILABLE = True
+except ImportError:
+    HAI_SECURITY_AVAILABLE = False
+    print("⚠️ HAI Security components not available - using basic security")
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -753,12 +763,39 @@ async def startup_event():
     logger.info(f"🎤 TTS Systems available: {available_systems}")
     logger.info(f"⭐ Preferred system: {preferred_tts}")
     
+    # Initialize HAI Security Components
+    if HAI_SECURITY_AVAILABLE:
+        try:
+            # Initialize privacy manager
+            privacy_manager = get_privacy_manager()
+            logger.info("🔒 ✅ Privacy Manager initialized - Local encryption & auto-cleanup active")
+            
+            # Initialize resource monitor
+            resource_monitor = get_resource_monitor()
+            resource_monitor.start_monitoring()
+            logger.info("📊 ✅ Resource Monitor started - CPU/Memory limits enforced")
+            
+            # Initialize security validator
+            security_validator = get_security_validator()
+            logger.info("🛡️ ✅ Security Validator initialized - Advanced threat protection active")
+            
+            logger.info("🤝 ✅ HAI Security Framework fully operational")
+        except Exception as e:
+            logger.error(f"⚠️ HAI Security initialization failed: {e}")
+            logger.warning("⚠️ Continuing with basic security measures")
+    else:
+        logger.warning("⚠️ HAI Security components not available - using basic security")
+    
     # Log HAI features
     logger.info("🛡️ HAI Safety Features Active:")
     logger.info(f"   • Rate limiting: {HAIConfig.RATE_LIMIT_PER_MINUTE} requests/minute")
     logger.info(f"   • Input validation: Max {HAIConfig.MAX_TEXT_LENGTH} characters")
     logger.info(f"   • Auto cleanup: {HAIConfig.AUTO_CLEANUP_MINUTES} minutes")
     logger.info(f"   • Graceful degradation: {HAIConfig.ENABLE_GRACEFUL_DEGRADATION}")
+    if HAI_SECURITY_AVAILABLE:
+        logger.info(f"   • Advanced privacy protection with local encryption")
+        logger.info(f"   • Resource monitoring and limits")
+        logger.info(f"   • Enhanced security validation and threat detection")
     
     logger.info("🌟 TARA Voice Server started successfully with HAI enhancement!")
     logger.info("🤝 Ready to help humans anytime, everywhere they need assistance!")

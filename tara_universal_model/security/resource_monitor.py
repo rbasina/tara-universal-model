@@ -15,31 +15,43 @@ import psutil
 import threading
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Any
 from dataclasses import dataclass
 from pathlib import Path
 import json
+import socket
+import subprocess
 
 logger = logging.getLogger(__name__)
 
 @dataclass
 class ResourceLimits:
-    """HAI Resource Limits Configuration"""
-    max_cpu_percent: float = 70.0  # Maximum CPU usage percentage
-    max_memory_mb: int = 1024      # Maximum memory usage in MB
-    max_disk_usage_mb: int = 500   # Maximum disk usage for temp files
-    max_active_sessions: int = 10  # Maximum concurrent sessions
-    monitoring_interval: int = 5   # Monitoring interval in seconds
-    
+    """Resource usage limits"""
+    max_cpu_percent: float = 80.0
+    max_memory_mb: int = 2048
+    max_disk_io_mb: int = 100
+    max_network_connections: int = 10
+    monitoring_interval: int = 5  # seconds
+
 @dataclass
-class ResourceAlert:
-    """Resource usage alert"""
+class ResourceUsage:
+    """Current resource usage"""
+    cpu_percent: float
+    memory_mb: float
+    disk_io_mb: float
+    network_connections: int
     timestamp: datetime
-    alert_type: str
-    message: str
-    current_value: float
-    limit_value: float
-    severity: str  # 'warning', 'critical'
+    process_count: int
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "cpu_percent": self.cpu_percent,
+            "memory_mb": self.memory_mb,
+            "disk_io_mb": self.disk_io_mb,
+            "network_connections": self.network_connections,
+            "timestamp": self.timestamp.isoformat(),
+            "process_count": self.process_count
+        }
 
 class NetworkIsolationChecker:
     """HAI Network Isolation Verification"""
@@ -96,329 +108,419 @@ class NetworkIsolationChecker:
         return results
 
 class ResourceMonitor:
-    """HAI-Enhanced Resource Monitor for System Safety"""
+    """
+    Resource Management and Monitoring for TARA Universal Model
     
-    def __init__(self, limits: Optional[ResourceLimits] = None):
+    Features:
+    - CPU/Memory limits to prevent system overload
+    - Network isolation verification for complete offline mode
+    - Performance monitoring and optimization
+    - Process isolation and management
+    """
+    
+    def __init__(self, limits: ResourceLimits = None):
         self.limits = limits or ResourceLimits()
-        self.process = psutil.Process()
-        self.start_time = datetime.now()
-        self.alerts: List[ResourceAlert] = []
-        self.monitoring_active = False
+        self.monitoring = False
         self.monitor_thread = None
-        self.alert_callbacks: List[Callable] = []
         
         # Resource usage history
-        self.cpu_history: List[float] = []
-        self.memory_history: List[float] = []
-        self.disk_usage_history: List[float] = []
+        self.usage_history: List[ResourceUsage] = []
+        self.max_history_size = 1000
         
-        # Session tracking
-        self.active_sessions = set()
+        # Alert callbacks
+        self.alert_callbacks: List[Callable[[str, Dict], None]] = []
         
-        logger.info("🔧 Resource Monitor initialized with HAI safety limits")
+        # Process tracking
+        self.tara_processes: List[psutil.Process] = []
+        self.main_process = psutil.Process()
+        
+        # Network isolation status
+        self.network_isolated = False
+        self.allowed_connections = set()
+        
+        # Performance metrics
+        self.performance_metrics = {
+            "ai_response_times": [],
+            "voice_synthesis_times": [],
+            "model_load_times": [],
+            "memory_peaks": [],
+            "cpu_peaks": []
+        }
     
     def start_monitoring(self):
-        """Start continuous resource monitoring"""
-        if self.monitoring_active:
+        """Start resource monitoring"""
+        if self.monitoring:
             return
         
-        self.monitoring_active = True
-        self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
+        self.monitoring = True
+        self.monitor_thread = threading.Thread(target=self._monitor_worker, daemon=True)
         self.monitor_thread.start()
-        logger.info("📊 Resource monitoring started")
     
     def stop_monitoring(self):
         """Stop resource monitoring"""
-        self.monitoring_active = False
+        self.monitoring = False
         if self.monitor_thread:
-            self.monitor_thread.join(timeout=5)
-        logger.info("📊 Resource monitoring stopped")
+            self.monitor_thread.join(timeout=10)
     
-    def _monitor_loop(self):
-        """Main monitoring loop"""
-        while self.monitoring_active:
+    def _monitor_worker(self):
+        """Background monitoring worker"""
+        while self.monitoring:
             try:
-                self._check_resources()
+                usage = self._collect_resource_usage()
+                self._check_limits(usage)
+                self._update_history(usage)
                 time.sleep(self.limits.monitoring_interval)
             except Exception as e:
-                logger.error(f"Resource monitoring error: {e}")
+                self._trigger_alert("monitoring_error", {"error": str(e)})
                 time.sleep(self.limits.monitoring_interval)
     
-    def _check_resources(self):
-        """Check all resource limits"""
-        current_time = datetime.now()
+    def _collect_resource_usage(self) -> ResourceUsage:
+        """Collect current resource usage"""
+        # CPU usage
+        cpu_percent = psutil.cpu_percent(interval=1)
         
-        # CPU usage check
-        cpu_percent = self.process.cpu_percent()
-        self.cpu_history.append(cpu_percent)
-        if len(self.cpu_history) > 60:  # Keep last 60 readings
-            self.cpu_history.pop(0)
+        # Memory usage
+        memory_info = psutil.virtual_memory()
+        memory_mb = memory_info.used / 1024 / 1024
         
-        if cpu_percent > self.limits.max_cpu_percent:
-            self._create_alert(
-                "cpu_limit_exceeded",
-                f"CPU usage ({cpu_percent:.1f}%) exceeds limit ({self.limits.max_cpu_percent}%)",
-                cpu_percent,
-                self.limits.max_cpu_percent,
-                "critical" if cpu_percent > self.limits.max_cpu_percent * 1.2 else "warning"
-            )
+        # Disk I/O (approximate)
+        disk_io = psutil.disk_io_counters()
+        disk_io_mb = (disk_io.read_bytes + disk_io.write_bytes) / 1024 / 1024 if disk_io else 0
         
-        # Memory usage check
-        memory_info = self.process.memory_info()
-        memory_mb = memory_info.rss / 1024 / 1024
-        self.memory_history.append(memory_mb)
-        if len(self.memory_history) > 60:
-            self.memory_history.pop(0)
+        # Network connections
+        network_connections = len(psutil.net_connections())
         
-        if memory_mb > self.limits.max_memory_mb:
-            self._create_alert(
-                "memory_limit_exceeded",
-                f"Memory usage ({memory_mb:.1f}MB) exceeds limit ({self.limits.max_memory_mb}MB)",
-                memory_mb,
-                self.limits.max_memory_mb,
-                "critical" if memory_mb > self.limits.max_memory_mb * 1.2 else "warning"
-            )
+        # Process count
+        process_count = len(psutil.pids())
         
-        # Disk usage check
-        disk_usage = self._get_temp_disk_usage()
-        self.disk_usage_history.append(disk_usage)
-        if len(self.disk_usage_history) > 60:
-            self.disk_usage_history.pop(0)
-        
-        if disk_usage > self.limits.max_disk_usage_mb:
-            self._create_alert(
-                "disk_limit_exceeded",
-                f"Temp disk usage ({disk_usage:.1f}MB) exceeds limit ({self.limits.max_disk_usage_mb}MB)",
-                disk_usage,
-                self.limits.max_disk_usage_mb,
-                "warning"
-            )
-        
-        # Session limit check
-        active_count = len(self.active_sessions)
-        if active_count > self.limits.max_active_sessions:
-            self._create_alert(
-                "session_limit_exceeded",
-                f"Active sessions ({active_count}) exceed limit ({self.limits.max_active_sessions})",
-                active_count,
-                self.limits.max_active_sessions,
-                "warning"
-            )
-    
-    def _get_temp_disk_usage(self) -> float:
-        """Calculate disk usage of temporary files"""
-        try:
-            temp_dirs = [
-                Path.cwd() / "temp",
-                Path.cwd() / "logs",
-                Path("/tmp") if os.name != 'nt' else Path(os.environ.get('TEMP', 'C:\\temp'))
-            ]
-            
-            total_size = 0
-            for temp_dir in temp_dirs:
-                if temp_dir.exists():
-                    for file_path in temp_dir.rglob('*'):
-                        if file_path.is_file():
-                            try:
-                                total_size += file_path.stat().st_size
-                            except (OSError, FileNotFoundError):
-                                continue
-            
-            return total_size / 1024 / 1024  # Convert to MB
-        except Exception as e:
-            logger.warning(f"Disk usage calculation failed: {e}")
-            return 0.0
-    
-    def _create_alert(self, alert_type: str, message: str, current_value: float, limit_value: float, severity: str):
-        """Create and handle resource alert"""
-        alert = ResourceAlert(
+        return ResourceUsage(
+            cpu_percent=cpu_percent,
+            memory_mb=memory_mb,
+            disk_io_mb=disk_io_mb,
+            network_connections=network_connections,
             timestamp=datetime.now(),
-            alert_type=alert_type,
-            message=message,
-            current_value=current_value,
-            limit_value=limit_value,
-            severity=severity
+            process_count=process_count
         )
-        
-        self.alerts.append(alert)
-        
-        # Keep only recent alerts
-        cutoff_time = datetime.now() - timedelta(hours=1)
-        self.alerts = [a for a in self.alerts if a.timestamp > cutoff_time]
-        
-        # Log alert
-        log_func = logger.critical if severity == "critical" else logger.warning
-        log_func(f"🚨 Resource Alert [{severity.upper()}]: {message}")
-        
-        # Trigger callbacks
-        for callback in self.alert_callbacks:
-            try:
-                callback(alert)
-            except Exception as e:
-                logger.error(f"Alert callback failed: {e}")
-        
-        # Auto-mitigation for critical alerts
-        if severity == "critical":
-            self._handle_critical_alert(alert)
     
-    def _handle_critical_alert(self, alert: ResourceAlert):
-        """Handle critical resource alerts with auto-mitigation"""
-        if alert.alert_type == "cpu_limit_exceeded":
-            logger.warning("🔧 Implementing CPU throttling...")
-            # Implement CPU throttling logic here
-            
-        elif alert.alert_type == "memory_limit_exceeded":
-            logger.warning("🔧 Triggering memory cleanup...")
-            self._emergency_memory_cleanup()
-            
-        elif alert.alert_type == "disk_limit_exceeded":
-            logger.warning("🔧 Cleaning up temporary files...")
-            self._emergency_disk_cleanup()
+    def _check_limits(self, usage: ResourceUsage):
+        """Check if resource usage exceeds limits"""
+        alerts = []
+        
+        if usage.cpu_percent > self.limits.max_cpu_percent:
+            alerts.append(("cpu_limit_exceeded", {
+                "current": usage.cpu_percent,
+                "limit": self.limits.max_cpu_percent
+            }))
+        
+        if usage.memory_mb > self.limits.max_memory_mb:
+            alerts.append(("memory_limit_exceeded", {
+                "current": usage.memory_mb,
+                "limit": self.limits.max_memory_mb
+            }))
+        
+        if usage.network_connections > self.limits.max_network_connections and not self.network_isolated:
+            alerts.append(("network_connections_exceeded", {
+                "current": usage.network_connections,
+                "limit": self.limits.max_network_connections
+            }))
+        
+        # Trigger alerts
+        for alert_type, data in alerts:
+            self._trigger_alert(alert_type, data)
     
-    def _emergency_memory_cleanup(self):
-        """Emergency memory cleanup procedures"""
+    def _update_history(self, usage: ResourceUsage):
+        """Update usage history"""
+        self.usage_history.append(usage)
+        
+        # Maintain history size
+        if len(self.usage_history) > self.max_history_size:
+            self.usage_history = self.usage_history[-self.max_history_size:]
+        
+        # Update performance metrics
+        self._update_performance_metrics(usage)
+    
+    def _update_performance_metrics(self, usage: ResourceUsage):
+        """Update performance metrics"""
+        # Track CPU peaks
+        if usage.cpu_percent > 50:
+            self.performance_metrics["cpu_peaks"].append({
+                "value": usage.cpu_percent,
+                "timestamp": usage.timestamp.isoformat()
+            })
+        
+        # Track memory peaks
+        if usage.memory_mb > 1000:
+            self.performance_metrics["memory_peaks"].append({
+                "value": usage.memory_mb,
+                "timestamp": usage.timestamp.isoformat()
+            })
+        
+        # Limit metrics history
+        for metric in self.performance_metrics:
+            if len(self.performance_metrics[metric]) > 100:
+                self.performance_metrics[metric] = self.performance_metrics[metric][-100:]
+    
+    def verify_network_isolation(self) -> Dict[str, Any]:
+        """Verify complete offline mode"""
+        isolation_status = {
+            "isolated": True,
+            "active_connections": [],
+            "listening_ports": [],
+            "dns_resolution": False,
+            "internet_access": False
+        }
+        
         try:
-            import gc
-            gc.collect()  # Force garbage collection
-            
-            # Clear caches if available
-            if hasattr(self, 'model_cache'):
-                self.model_cache.clear()
-            
-            logger.info("🧹 Emergency memory cleanup completed")
-        except Exception as e:
-            logger.error(f"Emergency memory cleanup failed: {e}")
-    
-    def _emergency_disk_cleanup(self):
-        """Emergency disk cleanup procedures"""
-        try:
-            import tempfile
-            import glob
-            
-            # Clean up temp audio files
-            temp_patterns = [
-                "temp_audio_*.mp3",
-                "temp_audio_*.wav",
-                "*.tmp",
-                "tara_temp_*"
+            # Check active network connections
+            connections = psutil.net_connections()
+            external_connections = [
+                conn for conn in connections 
+                if conn.status == 'ESTABLISHED' and 
+                conn.raddr and 
+                not self._is_local_address(conn.raddr.ip)
             ]
             
-            for pattern in temp_patterns:
-                for file_path in glob.glob(os.path.join(tempfile.gettempdir(), pattern)):
-                    try:
-                        os.remove(file_path)
-                    except OSError:
-                        continue
+            isolation_status["active_connections"] = [
+                f"{conn.laddr.ip}:{conn.laddr.port} -> {conn.raddr.ip}:{conn.raddr.port}"
+                for conn in external_connections
+            ]
             
-            logger.info("🧹 Emergency disk cleanup completed")
+            if external_connections:
+                isolation_status["isolated"] = False
+            
+            # Check listening ports
+            listening = [
+                conn for conn in connections 
+                if conn.status == 'LISTEN'
+            ]
+            
+            isolation_status["listening_ports"] = [
+                f"{conn.laddr.ip}:{conn.laddr.port}"
+                for conn in listening
+            ]
+            
+            # Test DNS resolution (should fail in isolated mode)
+            try:
+                socket.gethostbyname("google.com")
+                isolation_status["dns_resolution"] = True
+                isolation_status["isolated"] = False
+            except socket.gaierror:
+                isolation_status["dns_resolution"] = False
+            
+            # Test internet access (should fail in isolated mode)
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(5)
+                result = sock.connect_ex(("8.8.8.8", 53))
+                sock.close()
+                if result == 0:
+                    isolation_status["internet_access"] = True
+                    isolation_status["isolated"] = False
+            except Exception:
+                pass
+            
         except Exception as e:
-            logger.error(f"Emergency disk cleanup failed: {e}")
+            isolation_status["error"] = str(e)
+            isolation_status["isolated"] = False
+        
+        self.network_isolated = isolation_status["isolated"]
+        return isolation_status
     
-    def register_session(self, session_id: str):
-        """Register a new active session"""
-        self.active_sessions.add(session_id)
-        logger.debug(f"📝 Registered session: {session_id}")
+    def _is_local_address(self, ip: str) -> bool:
+        """Check if IP address is local"""
+        local_ranges = [
+            "127.", "10.", "192.168.", "172.16.", "172.17.", "172.18.", 
+            "172.19.", "172.20.", "172.21.", "172.22.", "172.23.", 
+            "172.24.", "172.25.", "172.26.", "172.27.", "172.28.", 
+            "172.29.", "172.30.", "172.31.", "::1", "localhost"
+        ]
+        return any(ip.startswith(prefix) for prefix in local_ranges)
     
-    def unregister_session(self, session_id: str):
-        """Unregister an active session"""
-        self.active_sessions.discard(session_id)
-        logger.debug(f"📝 Unregistered session: {session_id}")
+    def limit_process_resources(self, pid: int = None):
+        """Apply resource limits to process"""
+        try:
+            process = psutil.Process(pid) if pid else self.main_process
+            
+            # Set CPU affinity (limit to specific cores if needed)
+            # process.cpu_affinity([0, 1])  # Limit to first 2 cores
+            
+            # Set process priority (lower priority)
+            if os.name == 'nt':  # Windows
+                process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+            else:  # Unix/Linux
+                process.nice(10)
+            
+            # Track process
+            if process not in self.tara_processes:
+                self.tara_processes.append(process)
+            
+            return True
+            
+        except Exception as e:
+            self._trigger_alert("process_limit_error", {"error": str(e), "pid": pid})
+            return False
     
-    def add_alert_callback(self, callback: Callable[[ResourceAlert], None]):
-        """Add callback for resource alerts"""
-        self.alert_callbacks.append(callback)
+    def optimize_performance(self) -> Dict[str, Any]:
+        """Optimize system performance for TARA"""
+        optimizations = {
+            "memory_cleanup": False,
+            "cache_optimization": False,
+            "process_optimization": False,
+            "disk_cleanup": False
+        }
+        
+        try:
+            # Memory cleanup
+            import gc
+            gc.collect()
+            optimizations["memory_cleanup"] = True
+            
+            # Process optimization
+            for process in self.tara_processes:
+                if process.is_running():
+                    self.limit_process_resources(process.pid)
+            optimizations["process_optimization"] = True
+            
+            # Cache optimization (clear old cache files)
+            cache_dir = Path.home() / ".tara" / "cache"
+            if cache_dir.exists():
+                current_time = time.time()
+                for cache_file in cache_dir.rglob("*"):
+                    if cache_file.is_file() and current_time - cache_file.stat().st_mtime > 3600:  # 1 hour
+                        cache_file.unlink()
+            optimizations["cache_optimization"] = True
+            
+        except Exception as e:
+            self._trigger_alert("optimization_error", {"error": str(e)})
+        
+        return optimizations
     
-    def get_resource_status(self) -> Dict:
+    def record_performance_metric(self, metric_type: str, value: float, metadata: Dict = None):
+        """Record custom performance metric"""
+        if metric_type not in self.performance_metrics:
+            self.performance_metrics[metric_type] = []
+        
+        metric_data = {
+            "value": value,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        if metadata:
+            metric_data.update(metadata)
+        
+        self.performance_metrics[metric_type].append(metric_data)
+        
+        # Limit metric history
+        if len(self.performance_metrics[metric_type]) > 100:
+            self.performance_metrics[metric_type] = self.performance_metrics[metric_type][-100:]
+    
+    def get_resource_status(self) -> Dict[str, Any]:
         """Get current resource status"""
-        current_cpu = self.process.cpu_percent()
-        current_memory = self.process.memory_info().rss / 1024 / 1024
-        current_disk = self._get_temp_disk_usage()
+        current_usage = self._collect_resource_usage()
         
         return {
-            "timestamp": datetime.now().isoformat(),
-            "cpu": {
-                "current_percent": current_cpu,
-                "limit_percent": self.limits.max_cpu_percent,
-                "status": "normal" if current_cpu <= self.limits.max_cpu_percent else "exceeded",
-                "history_avg": sum(self.cpu_history[-10:]) / len(self.cpu_history[-10:]) if self.cpu_history else 0
-            },
-            "memory": {
-                "current_mb": current_memory,
-                "limit_mb": self.limits.max_memory_mb,
-                "status": "normal" if current_memory <= self.limits.max_memory_mb else "exceeded",
-                "history_avg": sum(self.memory_history[-10:]) / len(self.memory_history[-10:]) if self.memory_history else 0
-            },
-            "disk": {
-                "current_mb": current_disk,
-                "limit_mb": self.limits.max_disk_usage_mb,
-                "status": "normal" if current_disk <= self.limits.max_disk_usage_mb else "exceeded"
-            },
-            "sessions": {
-                "active_count": len(self.active_sessions),
-                "limit_count": self.limits.max_active_sessions,
-                "status": "normal" if len(self.active_sessions) <= self.limits.max_active_sessions else "exceeded"
-            },
-            "alerts": {
-                "total_count": len(self.alerts),
-                "critical_count": len([a for a in self.alerts if a.severity == "critical"]),
-                "warning_count": len([a for a in self.alerts if a.severity == "warning"])
-            },
-            "uptime_seconds": (datetime.now() - self.start_time).total_seconds(),
-            "monitoring_active": self.monitoring_active
-        }
-    
-    def get_network_isolation_status(self) -> Dict:
-        """Get network isolation verification status"""
-        return NetworkIsolationChecker.verify_offline_mode()
-    
-    def export_resource_report(self, filepath: Optional[str] = None) -> str:
-        """Export detailed resource usage report"""
-        if filepath is None:
-            filepath = f"tara_resource_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        
-        report = {
-            "report_timestamp": datetime.now().isoformat(),
-            "resource_limits": {
+            "current_usage": current_usage.to_dict(),
+            "limits": {
                 "max_cpu_percent": self.limits.max_cpu_percent,
                 "max_memory_mb": self.limits.max_memory_mb,
-                "max_disk_usage_mb": self.limits.max_disk_usage_mb,
-                "max_active_sessions": self.limits.max_active_sessions
+                "max_disk_io_mb": self.limits.max_disk_io_mb,
+                "max_network_connections": self.limits.max_network_connections
             },
-            "current_status": self.get_resource_status(),
-            "network_isolation": self.get_network_isolation_status(),
-            "resource_history": {
-                "cpu_history": self.cpu_history[-60:],  # Last 60 readings
-                "memory_history": self.memory_history[-60:],
-                "disk_history": self.disk_usage_history[-60:]
-            },
-            "recent_alerts": [
-                {
-                    "timestamp": alert.timestamp.isoformat(),
-                    "type": alert.alert_type,
-                    "message": alert.message,
-                    "current_value": alert.current_value,
-                    "limit_value": alert.limit_value,
-                    "severity": alert.severity
-                }
-                for alert in self.alerts[-50:]  # Last 50 alerts
-            ]
+            "monitoring_active": self.monitoring,
+            "network_isolated": self.network_isolated,
+            "tracked_processes": len(self.tara_processes),
+            "history_size": len(self.usage_history)
         }
+    
+    def get_performance_report(self) -> Dict[str, Any]:
+        """Get comprehensive performance report"""
+        if not self.usage_history:
+            return {"error": "No usage history available"}
         
+        # Calculate averages
+        avg_cpu = sum(u.cpu_percent for u in self.usage_history) / len(self.usage_history)
+        avg_memory = sum(u.memory_mb for u in self.usage_history) / len(self.usage_history)
+        
+        # Find peaks
+        max_cpu = max(u.cpu_percent for u in self.usage_history)
+        max_memory = max(u.memory_mb for u in self.usage_history)
+        
+        return {
+            "monitoring_period": {
+                "start": self.usage_history[0].timestamp.isoformat(),
+                "end": self.usage_history[-1].timestamp.isoformat(),
+                "duration_minutes": len(self.usage_history) * self.limits.monitoring_interval / 60
+            },
+            "averages": {
+                "cpu_percent": round(avg_cpu, 2),
+                "memory_mb": round(avg_memory, 2)
+            },
+            "peaks": {
+                "cpu_percent": max_cpu,
+                "memory_mb": max_memory
+            },
+            "performance_metrics": self.performance_metrics,
+            "efficiency_score": self._calculate_efficiency_score()
+        }
+    
+    def _calculate_efficiency_score(self) -> float:
+        """Calculate efficiency score (0-100)"""
+        if not self.usage_history:
+            return 0.0
+        
+        # Score based on resource utilization vs limits
+        avg_cpu = sum(u.cpu_percent for u in self.usage_history) / len(self.usage_history)
+        avg_memory = sum(u.memory_mb for u in self.usage_history) / len(self.usage_history)
+        
+        cpu_efficiency = max(0, 100 - (avg_cpu / self.limits.max_cpu_percent * 100))
+        memory_efficiency = max(0, 100 - (avg_memory / self.limits.max_memory_mb * 100))
+        
+        return round((cpu_efficiency + memory_efficiency) / 2, 2)
+    
+    def add_alert_callback(self, callback: Callable[[str, Dict], None]):
+        """Add alert callback function"""
+        self.alert_callbacks.append(callback)
+    
+    def _trigger_alert(self, alert_type: str, data: Dict):
+        """Trigger alert to all callbacks"""
+        for callback in self.alert_callbacks:
+            try:
+                callback(alert_type, data)
+            except Exception:
+                pass  # Silent failure for callbacks
+    
+    def emergency_resource_cleanup(self):
+        """Emergency resource cleanup"""
         try:
-            with open(filepath, 'w') as f:
-                json.dump(report, f, indent=2)
-            logger.info(f"📊 Resource report exported to: {filepath}")
-            return filepath
+            # Terminate non-essential TARA processes
+            for process in self.tara_processes[:]:
+                if process.is_running() and process.pid != os.getpid():
+                    try:
+                        process.terminate()
+                        self.tara_processes.remove(process)
+                    except Exception:
+                        pass
+            
+            # Force garbage collection
+            import gc
+            gc.collect()
+            
+            # Clear performance metrics
+            for metric in self.performance_metrics:
+                self.performance_metrics[metric] = []
+            
+            # Clear usage history
+            self.usage_history = []
+            
         except Exception as e:
-            logger.error(f"Failed to export resource report: {e}")
-            return ""
+            self._trigger_alert("emergency_cleanup_error", {"error": str(e)})
 
 # Global resource monitor instance
 _resource_monitor = None
 
-def get_resource_monitor(limits: Optional[ResourceLimits] = None) -> ResourceMonitor:
+def get_resource_monitor() -> ResourceMonitor:
     """Get global resource monitor instance"""
     global _resource_monitor
     if _resource_monitor is None:
-        _resource_monitor = ResourceMonitor(limits)
+        _resource_monitor = ResourceMonitor()
     return _resource_monitor 

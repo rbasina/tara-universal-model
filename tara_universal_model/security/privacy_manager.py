@@ -13,6 +13,7 @@ import os
 import json
 import time
 import hashlib
+import threading
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -21,6 +22,8 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
+import tempfile
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -304,102 +307,278 @@ class ConversationManager:
                 logger.error(f"Failed to delete session file {session_id}: {e}")
 
 class PrivacyManager:
-    """HAI-Enhanced Privacy Manager - Main Interface"""
+    """
+    Enhanced Privacy Protection for TARA Universal Model
     
-    def __init__(self, user_id: str = "default"):
-        self.user_id = user_id
-        self.conversation_manager = ConversationManager(user_id)
-        self.encryption_manager = EncryptionManager(user_id)
-        self.privacy_settings = self._load_privacy_settings()
-        
-        # Set up privacy-aware logging
-        self._configure_privacy_logging()
+    Features:
+    - Local encryption for all user interactions
+    - Automatic conversation cleanup after sessions
+    - Zero-logging mode for sensitive domains
+    - User-controlled data retention policies
+    """
     
-    def _load_privacy_settings(self) -> Dict:
-        """Load user privacy settings"""
-        settings_file = Path(f".tara_privacy_{self.user_id}.json")
+    def __init__(self, data_dir: str = None):
+        self.data_dir = Path(data_dir) if data_dir else Path.home() / ".tara" / "secure"
+        self.data_dir.mkdir(parents=True, exist_ok=True)
         
-        default_settings = {
-            "data_retention_minutes": PrivacyConfig.DEFAULT_RETENTION,
-            "sensitive_data_retention_minutes": PrivacyConfig.SENSITIVE_RETENTION,
-            "encryption_enabled": PrivacyConfig.ENCRYPTION_ENABLED,
-            "zero_logging_domains": PrivacyConfig.ZERO_LOGGING_DOMAINS.copy(),
-            "auto_cleanup_enabled": True,
-            "key_rotation_enabled": True
+        # Sensitive domains that require zero-logging
+        self.zero_log_domains = {"healthcare", "business", "mental_health", "financial"}
+        
+        # Default retention policies (in hours)
+        self.retention_policies = {
+            "healthcare": 0,  # No retention - immediate cleanup
+            "business": 0,    # No retention - immediate cleanup
+            "mental_health": 0,  # No retention - immediate cleanup
+            "financial": 0,   # No retention - immediate cleanup
+            "education": 24,  # 24 hours
+            "creative": 48,   # 48 hours
+            "leadership": 24, # 24 hours
+            "universal": 12   # 12 hours
         }
         
-        try:
-            if settings_file.exists():
-                with open(settings_file, 'r') as f:
-                    user_settings = json.load(f)
-                    default_settings.update(user_settings)
-        except Exception as e:
-            logger.error(f"Failed to load privacy settings: {e}")
+        # Initialize encryption
+        self._init_encryption()
         
-        return default_settings
+        # Active sessions tracking
+        self.active_sessions: Dict[str, Dict] = {}
+        
+        # Cleanup thread
+        self.cleanup_thread = None
+        self.cleanup_running = False
+        
+        # Start automatic cleanup
+        self._start_cleanup_thread()
     
-    def _configure_privacy_logging(self):
-        """Configure privacy-aware logging"""
-        # Set different log levels for sensitive domains
-        for domain in PrivacyConfig.ZERO_LOGGING_DOMAINS:
-            domain_logger = logging.getLogger(f"tara.{domain}")
-            domain_logger.setLevel(PrivacyConfig.LOG_LEVEL_SENSITIVE)
+    def _init_encryption(self):
+        """Initialize encryption with user-specific key"""
+        key_file = self.data_dir / "encryption.key"
+        
+        if key_file.exists():
+            with open(key_file, 'rb') as f:
+                self.encryption_key = f.read()
+        else:
+            # Generate new encryption key
+            password = os.urandom(32)  # Random password
+            salt = os.urandom(16)
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=salt,
+                iterations=100000,
+            )
+            key = base64.urlsafe_b64encode(kdf.derive(password))
+            self.encryption_key = key
+            
+            # Save key securely
+            with open(key_file, 'wb') as f:
+                f.write(key)
+            
+            # Secure file permissions (Windows)
+            if os.name == 'nt':
+                import stat
+                os.chmod(key_file, stat.S_IREAD | stat.S_IWRITE)
+        
+        self.cipher = Fernet(self.encryption_key)
     
-    def start_private_session(self, domain: str) -> str:
-        """Start a privacy-enhanced session"""
-        return self.conversation_manager.start_session(domain)
+    def create_session(self, domain: str, user_id: str = "default") -> str:
+        """Create a new secure session"""
+        session_id = hashlib.sha256(f"{user_id}_{domain}_{time.time()}".encode()).hexdigest()[:16]
+        
+        session_data = {
+            "id": session_id,
+            "domain": domain,
+            "user_id": user_id,
+            "created_at": datetime.now().isoformat(),
+            "interactions": [],
+            "zero_log": domain in self.zero_log_domains,
+            "retention_hours": self.retention_policies.get(domain, 12)
+        }
+        
+        self.active_sessions[session_id] = session_data
+        return session_id
     
-    def add_interaction(self, session_id: str, user_input: str, ai_response: str):
-        """Add interaction with privacy controls"""
-        self.conversation_manager.add_message(session_id, user_input, ai_response)
+    def log_interaction(self, session_id: str, interaction_type: str, data: Dict[str, Any]) -> bool:
+        """Log interaction with privacy controls"""
+        if session_id not in self.active_sessions:
+            return False
+        
+        session = self.active_sessions[session_id]
+        
+        # Check if this is a zero-log domain
+        if session["zero_log"]:
+            # For zero-log domains, only keep minimal metadata
+            interaction = {
+                "timestamp": datetime.now().isoformat(),
+                "type": interaction_type,
+                "domain": session["domain"],
+                "processed": True,
+                "data_encrypted": False  # No data stored
+            }
+        else:
+            # Encrypt sensitive data
+            encrypted_data = self.cipher.encrypt(json.dumps(data).encode())
+            
+            interaction = {
+                "timestamp": datetime.now().isoformat(),
+                "type": interaction_type,
+                "domain": session["domain"],
+                "data_encrypted": base64.b64encode(encrypted_data).decode(),
+                "processed": True
+            }
+        
+        session["interactions"].append(interaction)
+        return True
     
-    def get_session_history(self, session_id: str) -> List[Dict]:
-        """Get session history with privacy controls"""
-        return self.conversation_manager.get_conversation_history(session_id)
+    def get_session_data(self, session_id: str, decrypt: bool = True) -> Optional[Dict]:
+        """Retrieve session data with decryption"""
+        if session_id not in self.active_sessions:
+            return None
+        
+        session = self.active_sessions[session_id].copy()
+        
+        if decrypt and not session["zero_log"]:
+            # Decrypt interaction data
+            for interaction in session["interactions"]:
+                if "data_encrypted" in interaction and interaction["data_encrypted"]:
+                    try:
+                        encrypted_data = base64.b64decode(interaction["data_encrypted"])
+                        decrypted_data = self.cipher.decrypt(encrypted_data)
+                        interaction["data"] = json.loads(decrypted_data.decode())
+                        del interaction["data_encrypted"]
+                    except Exception as e:
+                        interaction["data"] = {"error": "Decryption failed"}
+        
+        return session
     
-    def end_private_session(self, session_id: str):
-        """End privacy-enhanced session"""
-        self.conversation_manager.end_session(session_id)
+    def end_session(self, session_id: str):
+        """End session and apply retention policy"""
+        if session_id not in self.active_sessions:
+            return
+        
+        session = self.active_sessions[session_id]
+        
+        # If zero retention, delete immediately
+        if session["retention_hours"] == 0:
+            del self.active_sessions[session_id]
+            return
+        
+        # Mark session as ended
+        session["ended_at"] = datetime.now().isoformat()
+        session["cleanup_at"] = (datetime.now() + timedelta(hours=session["retention_hours"])).isoformat()
     
-    def cleanup_all_expired_data(self):
-        """Clean up all expired data"""
-        self.conversation_manager.cleanup_expired_sessions()
+    def cleanup_expired_sessions(self):
+        """Clean up expired sessions"""
+        current_time = datetime.now()
+        expired_sessions = []
+        
+        for session_id, session in self.active_sessions.items():
+            # Check if session has cleanup time set
+            if "cleanup_at" in session:
+                cleanup_time = datetime.fromisoformat(session["cleanup_at"])
+                if current_time >= cleanup_time:
+                    expired_sessions.append(session_id)
+            
+            # Also cleanup very old active sessions (safety measure)
+            created_time = datetime.fromisoformat(session["created_at"])
+            if current_time - created_time > timedelta(hours=48):  # 48 hour max
+                expired_sessions.append(session_id)
+        
+        # Remove expired sessions
+        for session_id in expired_sessions:
+            if session_id in self.active_sessions:
+                del self.active_sessions[session_id]
+        
+        return len(expired_sessions)
     
-    def get_privacy_status(self) -> Dict:
+    def _start_cleanup_thread(self):
+        """Start automatic cleanup thread"""
+        if self.cleanup_thread and self.cleanup_thread.is_alive():
+            return
+        
+        self.cleanup_running = True
+        self.cleanup_thread = threading.Thread(target=self._cleanup_worker, daemon=True)
+        self.cleanup_thread.start()
+    
+    def _cleanup_worker(self):
+        """Background cleanup worker"""
+        while self.cleanup_running:
+            try:
+                self.cleanup_expired_sessions()
+                self._cleanup_temp_files()
+                time.sleep(300)  # Cleanup every 5 minutes
+            except Exception as e:
+                # Silent cleanup - don't log errors in privacy mode
+                pass
+    
+    def _cleanup_temp_files(self):
+        """Clean up temporary files"""
+        temp_dir = Path(tempfile.gettempdir())
+        current_time = time.time()
+        
+        # Clean up TARA-related temp files older than 30 minutes
+        for temp_file in temp_dir.glob("tara_*"):
+            try:
+                if current_time - temp_file.stat().st_mtime > 1800:  # 30 minutes
+                    if temp_file.is_file():
+                        temp_file.unlink()
+                    elif temp_file.is_dir():
+                        shutil.rmtree(temp_file)
+            except Exception:
+                pass
+    
+    def set_retention_policy(self, domain: str, hours: int):
+        """Set custom retention policy for domain"""
+        self.retention_policies[domain] = hours
+        
+        # Update existing sessions
+        for session in self.active_sessions.values():
+            if session["domain"] == domain:
+                session["retention_hours"] = hours
+                if "ended_at" in session:
+                    # Recalculate cleanup time
+                    ended_time = datetime.fromisoformat(session["ended_at"])
+                    session["cleanup_at"] = (ended_time + timedelta(hours=hours)).isoformat()
+    
+    def get_privacy_status(self) -> Dict[str, Any]:
         """Get current privacy status"""
         return {
-            "encryption_enabled": self.privacy_settings["encryption_enabled"],
-            "active_sessions": len(self.conversation_manager.active_sessions),
-            "zero_logging_domains": self.privacy_settings["zero_logging_domains"],
-            "data_retention_minutes": self.privacy_settings["data_retention_minutes"],
-            "auto_cleanup_enabled": self.privacy_settings["auto_cleanup_enabled"],
-            "privacy_mode": "HAI-Enhanced"
+            "active_sessions": len(self.active_sessions),
+            "zero_log_domains": list(self.zero_log_domains),
+            "retention_policies": self.retention_policies.copy(),
+            "encryption_enabled": True,
+            "cleanup_running": self.cleanup_running,
+            "data_directory": str(self.data_dir)
         }
     
-    def update_privacy_settings(self, new_settings: Dict):
-        """Update privacy settings"""
-        self.privacy_settings.update(new_settings)
+    def emergency_cleanup(self):
+        """Emergency cleanup - remove all data"""
+        # Clear all sessions
+        self.active_sessions.clear()
         
-        # Save updated settings
-        settings_file = Path(f".tara_privacy_{self.user_id}.json")
-        try:
-            with open(settings_file, 'w') as f:
-                json.dump(self.privacy_settings, f, indent=2)
-            
-            # Hide settings file
-            if os.name == 'nt':  # Windows
-                os.system(f'attrib +h "{settings_file}"')
-                
-            logger.info("🔒 Privacy settings updated")
-        except Exception as e:
-            logger.error(f"Failed to save privacy settings: {e}")
+        # Clean up temp files
+        self._cleanup_temp_files()
+        
+        # Optionally remove encryption key (uncomment if needed)
+        # key_file = self.data_dir / "encryption.key"
+        # if key_file.exists():
+        #     key_file.unlink()
+    
+    def shutdown(self):
+        """Shutdown privacy manager"""
+        self.cleanup_running = False
+        if self.cleanup_thread:
+            self.cleanup_thread.join(timeout=5)
+        
+        # Final cleanup
+        self.cleanup_expired_sessions()
+        self._cleanup_temp_files()
 
 # Global privacy manager instance
 _privacy_manager = None
 
-def get_privacy_manager(user_id: str = "default") -> PrivacyManager:
+def get_privacy_manager() -> PrivacyManager:
     """Get global privacy manager instance"""
     global _privacy_manager
     if _privacy_manager is None:
-        _privacy_manager = PrivacyManager(user_id)
+        _privacy_manager = PrivacyManager()
     return _privacy_manager 
