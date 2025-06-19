@@ -17,6 +17,8 @@ import re
 import uuid
 from datetime import datetime, timedelta
 from collections import defaultdict
+import hashlib
+import json
 
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -150,7 +152,7 @@ class InputValidator:
 
 class TTSRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=5000)
-    domain: str = Field(default="universal", regex="^(universal|healthcare|business|education|creative|leadership)$")
+    domain: str = Field(default="universal", pattern="^(universal|healthcare|business|education|creative|leadership)$")
     voice: Optional[str] = None
     
     @validator('text')
@@ -167,7 +169,7 @@ class TTSRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=5000)
-    domain: str = Field(default="universal", regex="^(universal|healthcare|business|education|creative|leadership)$")
+    domain: str = Field(default="universal", pattern="^(universal|healthcare|business|education|creative|leadership)$")
     
     @validator('message')
     def validate_and_sanitize_message(cls, v):
@@ -187,7 +189,10 @@ app = FastAPI(
 # CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000", "http://127.0.0.1:3000",  # Original tara-ai-companion
+        "http://localhost:2025", "http://127.0.0.1:2025"   # me²TARA Enhanced
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
@@ -227,6 +232,98 @@ DOMAIN_VOICES = {
     }
 }
 
+# Voice mapping for invalid or legacy voice names
+VOICE_MAPPING = {
+    # Legacy and invalid voice mappings
+    "gentle_female": "en-US-JennyNeural",
+    "gentle_male": "en-US-GuyNeural",
+    "warm_female": "en-US-AriaNeural",
+    "professional_female": "en-US-JennyNeural",
+    "professional_male": "en-US-ChristopherNeural",
+    "friendly_female": "en-US-AriaNeural",
+    "friendly_male": "en-US-GuyNeural",
+    "calm_female": "en-US-JennyNeural",
+    "calm_male": "en-US-GuyNeural",
+    "energetic_female": "en-US-AriaNeural",
+    "energetic_male": "en-US-GuyNeural",
+    # Common voice shortcuts
+    "female": "en-US-JennyNeural",
+    "male": "en-US-GuyNeural",
+    "woman": "en-US-AriaNeural",
+    "man": "en-US-GuyNeural",
+    "lady": "en-US-JennyNeural",
+    "guy": "en-US-GuyNeural",
+}
+
+# Valid Edge TTS voices (most commonly used ones)
+VALID_EDGE_VOICES = {
+    # English (US) voices
+    "en-US-AriaNeural": {"gender": "female", "locale": "en-US", "description": "News, conversational"},
+    "en-US-JennyNeural": {"gender": "female", "locale": "en-US", "description": "Friendly, considerate"},
+    "en-US-GuyNeural": {"gender": "male", "locale": "en-US", "description": "Passionate, energetic"},
+    "en-US-AnaNeural": {"gender": "female", "locale": "en-US", "description": "Cheerful, optimistic"},
+    "en-US-ChristopherNeural": {"gender": "male", "locale": "en-US", "description": "Reliable, authoritative"},
+    "en-US-EricNeural": {"gender": "male", "locale": "en-US", "description": "Rational, calm"},
+    "en-US-MichelleNeural": {"gender": "female", "locale": "en-US", "description": "Pleasant, friendly"},
+    "en-US-RogerNeural": {"gender": "male", "locale": "en-US", "description": "Lively, energetic"},
+    "en-US-SteffanNeural": {"gender": "male", "locale": "en-US", "description": "Rational, professional"},
+    
+    # English (UK) voices
+    "en-GB-SoniaNeural": {"gender": "female", "locale": "en-GB", "description": "British, friendly"},
+    "en-GB-RyanNeural": {"gender": "male", "locale": "en-GB", "description": "British, confident"},
+    "en-GB-LibbyNeural": {"gender": "female", "locale": "en-GB", "description": "British, warm"},
+    "en-GB-MaisieNeural": {"gender": "female", "locale": "en-GB", "description": "British, cheerful"},
+    "en-GB-ThomasNeural": {"gender": "male", "locale": "en-GB", "description": "British, professional"},
+    
+    # Other English variants
+    "en-AU-NatashaNeural": {"gender": "female", "locale": "en-AU", "description": "Australian, friendly"},
+    "en-AU-WilliamNeural": {"gender": "male", "locale": "en-AU", "description": "Australian, confident"},
+    "en-CA-ClaraNeural": {"gender": "female", "locale": "en-CA", "description": "Canadian, warm"},
+    "en-CA-LiamNeural": {"gender": "male", "locale": "en-CA", "description": "Canadian, friendly"},
+}
+
+def validate_and_map_voice(voice: str, domain: str = "universal") -> str:
+    """
+    Validate and map voice names to valid Edge TTS voices.
+    Returns a valid Edge TTS voice name.
+    """
+    if not voice:
+        # Use domain default if no voice specified
+        return DOMAIN_VOICES.get(domain, DOMAIN_VOICES["universal"])["voice"]
+    
+    # Check if it's already a valid Edge TTS voice
+    if voice in VALID_EDGE_VOICES:
+        logger.info(f"✅ Using valid Edge TTS voice: {voice}")
+        return voice
+    
+    # Check if it's in our mapping
+    if voice.lower() in VOICE_MAPPING:
+        mapped_voice = VOICE_MAPPING[voice.lower()]
+        logger.info(f"🔄 Mapped '{voice}' to valid Edge TTS voice: {mapped_voice}")
+        return mapped_voice
+    
+    # If voice contains common patterns, try to map it
+    voice_lower = voice.lower()
+    if "female" in voice_lower or "woman" in voice_lower or "lady" in voice_lower:
+        mapped_voice = "en-US-JennyNeural"
+        logger.info(f"🔄 Mapped female voice '{voice}' to: {mapped_voice}")
+        return mapped_voice
+    elif "male" in voice_lower or "man" in voice_lower or "guy" in voice_lower:
+        mapped_voice = "en-US-GuyNeural"
+        logger.info(f"🔄 Mapped male voice '{voice}' to: {mapped_voice}")
+        return mapped_voice
+    
+    # Try partial matching with valid voices (case insensitive)
+    for valid_voice in VALID_EDGE_VOICES.keys():
+        if voice.lower() in valid_voice.lower() or valid_voice.lower().endswith(voice.lower()):
+            logger.info(f"🔄 Partial match: mapped '{voice}' to: {valid_voice}")
+            return valid_voice
+    
+    # If no mapping found, use domain default and log warning
+    default_voice = DOMAIN_VOICES.get(domain, DOMAIN_VOICES["universal"])["voice"]
+    logger.warning(f"⚠️ Unknown voice '{voice}', using domain default: {default_voice}")
+    return default_voice
+
 # Global TTS system state
 tts_systems = {
     "edge_tts": EDGE_TTS_AVAILABLE,
@@ -235,11 +332,12 @@ tts_systems = {
 
 preferred_tts = "edge_tts" if EDGE_TTS_AVAILABLE else "pyttsx3"
 
-# File cleanup tracking
+# Global storage for file management and caching
 temp_files_created = []
+audio_cache = {}  # Cache for audio files based on content hash
 
 class FileCleanupManager:
-    """HAI-focused automatic file cleanup for privacy"""
+    """HAI-focused file management with automatic cleanup"""
     
     @staticmethod
     def schedule_cleanup(filepath: str):
@@ -264,6 +362,71 @@ class FileCleanupManager:
                     logger.warning(f"Failed to cleanup file {file_info['path']}: {e}")
                 finally:
                     temp_files_created.remove(file_info)
+
+class AudioCacheManager:
+    """Smart content-based caching system for audio files"""
+    
+    @staticmethod
+    def generate_content_hash(text: str, voice: str) -> str:
+        """Generate hash based on text content and voice"""
+        content = f"{text}||{voice}".encode('utf-8')
+        return hashlib.md5(content).hexdigest()[:12]  # Use first 12 chars
+    
+    @staticmethod
+    def get_cached_audio(text: str, voice: str) -> Optional[str]:
+        """Check if audio file exists for this content"""
+        content_hash = AudioCacheManager.generate_content_hash(text, voice)
+        
+        if content_hash in audio_cache:
+            file_path = audio_cache[content_hash]['path']
+            # Check if file still exists
+            if os.path.exists(file_path):
+                # Update last accessed time
+                audio_cache[content_hash]['last_accessed'] = datetime.now()
+                filename = os.path.basename(file_path)
+                logger.info(f"♻️ Reusing cached audio: {filename}")
+                return filename
+            else:
+                # File was deleted, remove from cache
+                del audio_cache[content_hash]
+        
+        return None
+    
+    @staticmethod
+    def cache_audio_file(text: str, voice: str, file_path: str) -> str:
+        """Add audio file to cache"""
+        content_hash = AudioCacheManager.generate_content_hash(text, voice)
+        filename = os.path.basename(file_path)
+        
+        audio_cache[content_hash] = {
+            'path': file_path,
+            'filename': filename,
+            'text': text[:100] + "..." if len(text) > 100 else text,  # Store snippet for debugging
+            'voice': voice,
+            'created': datetime.now(),
+            'last_accessed': datetime.now(),
+            'access_count': 1
+        }
+        
+        logger.info(f"💾 Cached new audio: {filename} (hash: {content_hash})")
+        return filename
+    
+    @staticmethod
+    def cleanup_cache():
+        """Remove old cache entries"""
+        cutoff_time = datetime.now() - timedelta(minutes=HAIConfig.AUTO_CLEANUP_MINUTES)
+        
+        for content_hash in list(audio_cache.keys()):
+            cache_entry = audio_cache[content_hash]
+            if cache_entry['last_accessed'] < cutoff_time:
+                try:
+                    if os.path.exists(cache_entry['path']):
+                        os.remove(cache_entry['path'])
+                        logger.info(f"🧹 Cleaned up cached file: {cache_entry['filename']}")
+                except Exception as e:
+                    logger.warning(f"Failed to cleanup cached file {cache_entry['path']}: {e}")
+                finally:
+                    del audio_cache[content_hash]
 
 async def synthesize_with_edge_tts(text: str, voice: str, output_path: str) -> bool:
     """HAI-Enhanced Edge TTS synthesis with robust error handling"""
@@ -342,9 +505,10 @@ async def hai_security_middleware(request: Request, call_next):
     # Process request
     response = await call_next(request)
     
-    # Cleanup old files periodically
+    # Cleanup old files and cache periodically
     if len(temp_files_created) > 10:  # Cleanup every 10 requests
         FileCleanupManager.cleanup_old_files()
+        AudioCacheManager.cleanup_cache()
     
     return response
 
@@ -400,7 +564,46 @@ async def get_tts_status():
             "offline_capable": True,
             "privacy_protection": True
         },
-        "version": "2.0.0 HAI-Enhanced with Universal AI Engine"
+        "version": "2.0.0 HAI-Enhanced with Universal AI Engine",
+        "voice_support": {
+            "supported_edge_voices": len(VALID_EDGE_VOICES),
+            "voice_mapping_enabled": True,
+            "voice_aliases": len(VOICE_MAPPING),
+            "automatic_mapping": "Invalid voice names are automatically mapped to valid Edge TTS voices"
+        },
+        "cache_system": {
+            "content_based_caching": True,
+            "cached_files": len(audio_cache),
+            "cache_description": "Identical text+voice combinations reuse the same audio file for efficiency"
+        }
+    }
+
+@app.get("/tts/voices")
+async def get_available_voices():
+    """Get all available voices with mapping information"""
+    return {
+        "valid_edge_voices": {
+            voice: {
+                "name": voice,
+                "gender": info["gender"],
+                "locale": info["locale"],
+                "description": info["description"]
+            }
+            for voice, info in VALID_EDGE_VOICES.items()
+        },
+        "voice_mappings": {
+            alias: mapping
+            for alias, mapping in VOICE_MAPPING.items()
+        },
+        "domain_default_voices": {
+            domain: {
+                "primary": config["voice"],
+                "fallback": config["fallback_voice"],
+                "personality": config["personality"]
+            }
+            for domain, config in DOMAIN_VOICES.items()
+        },
+        "usage_note": "You can use any voice from 'valid_edge_voices' directly, or use aliases from 'voice_mappings' which will be automatically converted to valid voices."
     }
 
 @app.post("/tts/synthesize")
@@ -413,21 +616,36 @@ async def synthesize_speech(request: TTSRequest, background_tasks: BackgroundTas
         
         # Get domain configuration
         domain_config = DOMAIN_VOICES.get(domain, DOMAIN_VOICES["universal"])
-        voice = request.voice or domain_config["voice"]
         
-        # Generate unique filename
-        timestamp = int(time.time() * 1000)
-        unique_id = str(uuid.uuid4())[:8]
+        # Validate and map voice (handles invalid voices like 'gentle_female')
+        raw_voice = request.voice or domain_config["voice"]
+        voice = validate_and_map_voice(raw_voice, domain)
+        
+        # Check cache first - reuse existing audio if same text+voice
+        cached_audio = AudioCacheManager.get_cached_audio(text, voice)
+        if cached_audio:
+            return {
+                "success": True,
+                "audio_url": f"/audio/{cached_audio}",
+                "text_response": text,
+                "synthesis_method": f"Cached ({voice})",
+                "domain": domain,
+                "personality": domain_config["personality"],
+                "hai_message": f"TARA efficiently reused cached audio for {domain} domain!",
+                "fallback_used": False,
+                "cached": True
+            }
+        
+        # Generate content-based filename for new synthesis
+        content_hash = AudioCacheManager.generate_content_hash(text, voice)
+        audio_file = f"tara_audio_{content_hash}.mp3"
+        audio_path = os.path.join(tempfile.gettempdir(), audio_file)
         
         success = False
-        audio_file = None
         synthesis_method = None
         
         # Attempt 1: Edge TTS with primary voice
         if tts_systems["edge_tts"]:
-            audio_file = f"temp_audio_{timestamp}_{unique_id}.mp3"
-            audio_path = os.path.join(tempfile.gettempdir(), audio_file)
-            
             success = await synthesize_with_edge_tts(text, voice, audio_path)
             if success:
                 synthesis_method = f"Edge TTS ({voice})"
@@ -442,11 +660,8 @@ async def synthesize_speech(request: TTSRequest, background_tasks: BackgroundTas
         
         # Attempt 3: pyttsx3 fallback
         if not success and tts_systems["pyttsx3"]:
-            if audio_file and audio_file.endswith('.mp3'):
-                audio_file = audio_file.replace('.mp3', '.wav')
-            else:
-                audio_file = f"temp_audio_{timestamp}_{unique_id}.wav"
-            
+            # For pyttsx3, use .wav extension
+            audio_file = f"tara_audio_{content_hash}.wav"
             audio_path = os.path.join(tempfile.gettempdir(), audio_file)
             success = synthesize_with_pyttsx3(text, audio_path)
             if success:
@@ -468,7 +683,10 @@ async def synthesize_speech(request: TTSRequest, background_tasks: BackgroundTas
                 }
             )
         
-        # Schedule file cleanup
+        # Cache the audio file for future reuse
+        AudioCacheManager.cache_audio_file(text, voice, audio_path)
+        
+        # Schedule file cleanup (will be handled by cache cleanup)
         FileCleanupManager.schedule_cleanup(audio_path)
         
         return {
@@ -479,7 +697,8 @@ async def synthesize_speech(request: TTSRequest, background_tasks: BackgroundTas
             "domain": domain,
             "personality": domain_config["personality"],
             "hai_message": f"TARA is ready to help in the {domain} domain!",
-            "fallback_used": synthesis_method != f"Edge TTS ({voice})"
+            "fallback_used": synthesis_method != f"Edge TTS ({voice})",
+            "cached": False
         }
         
     except Exception as e:
@@ -493,6 +712,12 @@ async def synthesize_speech(request: TTSRequest, background_tasks: BackgroundTas
                 "support": "If this persists, TARA's text responses are still available."
             }
         )
+
+# Frontend compatibility alias
+@app.post("/api/synthesize")
+async def api_synthesize_alias(request: TTSRequest, background_tasks: BackgroundTasks):
+    """Frontend compatibility alias for /tts/synthesize"""
+    return await synthesize_speech(request, background_tasks)
 
 @app.post("/chat_with_voice")
 async def chat_with_voice(request: ChatRequest, background_tasks: BackgroundTasks):
@@ -670,6 +895,49 @@ async def ai_chat(request: ChatRequest):
             }
         )
 
+@app.get("/health")
+async def health_check():
+    """General health check endpoint for frontend"""
+    try:
+        # Check TTS systems
+        tts_systems_status = []
+        if EDGE_TTS_AVAILABLE:
+            tts_systems_status.append("edge_tts")
+        if PYTTSX3_AVAILABLE:
+            tts_systems_status.append("pyttsx3")
+        
+        # Check AI engine
+        ai_status = "available" if AI_ENGINE_AVAILABLE else "fallback"
+        
+        # Check HAI Security
+        security_status = "enabled" if HAI_SECURITY_AVAILABLE else "basic"
+        
+        return {
+            "status": "healthy",
+            "server": "TARA Universal Voice Server v2.0.0",
+            "tts_systems": tts_systems_status,
+            "ai_engine": ai_status,
+            "security": security_status,
+            "endpoints": {
+                "tts": ["/tts/status", "/tts/synthesize"],
+                "ai": ["/ai/chat", "/ai/health"],
+                "voice": ["/chat_with_voice"],
+                "audio": ["/audio/{filename}"]
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "error": str(e),
+                "message": "Health check failed"
+            }
+        )
+
 @app.get("/ai/health")
 async def ai_health_check():
     """AI Engine health check endpoint"""
@@ -707,7 +975,9 @@ async def serve_audio(filename: str):
     
     try:
         # Security: Validate filename to prevent path traversal
-        if not re.match(r'^temp_audio_\d+_[a-f0-9]{8}\.(mp3|wav)$', filename):
+        # Support both old timestamp format and new content-hash format
+        if not (re.match(r'^temp_audio_\d+_[a-f0-9]{8}\.(mp3|wav)$', filename) or 
+                re.match(r'^tara_audio_[a-f0-9]{12}\.(mp3|wav)$', filename)):
             raise HTTPException(status_code=400, detail="Invalid filename format")
         
         file_path = os.path.join(tempfile.gettempdir(), filename)
@@ -762,6 +1032,10 @@ async def startup_event():
     
     logger.info(f"🎤 TTS Systems available: {available_systems}")
     logger.info(f"⭐ Preferred system: {preferred_tts}")
+    logger.info(f"🎭 Voice mapping enabled: {len(VALID_EDGE_VOICES)} valid voices, {len(VOICE_MAPPING)} aliases")
+    logger.info("🔄 Invalid voice names (like 'gentle_female') will be automatically mapped to valid voices")
+    logger.info("💾 Content-based caching enabled: Identical text+voice will reuse same audio file")
+    logger.info("♻️ Smart cache management: Reduces file creation and improves performance")
     
     # Initialize HAI Security Components
     if HAI_SECURITY_AVAILABLE:
@@ -807,16 +1081,21 @@ if __name__ == "__main__":
     print("📋 Available endpoints:")
     print("   🔊 Voice Services:")
     print("      • GET  /tts/status - Check TTS & AI system status")
-    print("      • POST /tts/synthesize - Synthesize speech from text")  
+    print("      • GET  /tts/voices - List available voices and mappings")
+    print("      • POST /tts/synthesize - Synthesize speech from text")
+    print("      • POST /api/synthesize - Frontend compatibility alias")  
     print("      • POST /chat_with_voice - Chat with voice response")
     print("      • GET  /audio/{filename} - Serve audio files")
     print("   🧠 AI Services:")
     print("      • POST /ai/chat - Direct AI chat (no voice)")
     print("      • GET  /ai/health - AI Engine health check")
+    print("   🔧 System Services:")
+    print("      • GET  /health - General server health check")
     print("🛡️ HAI Safety Features:")
     print(f"   • Rate limiting: {HAIConfig.RATE_LIMIT_PER_MINUTE} req/min per IP")
     print(f"   • Input validation & sanitization")
     print(f"   • Automatic file cleanup ({HAIConfig.AUTO_CLEANUP_MINUTES} min)")
+    print(f"   • Smart caching: Identical text+voice reuse same file")
     print(f"   • Multi-level fallback system")
     print(f"   • Universal AI Engine with 6 domain experts")
     print("🚀 Ready for tara-ai-companion frontend integration!")
