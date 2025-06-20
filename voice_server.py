@@ -191,10 +191,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000", "http://127.0.0.1:3000",  # Original tara-ai-companion
-        "http://localhost:2025", "http://127.0.0.1:2025"   # me²TARA Enhanced
+        "http://localhost:2025", "http://127.0.0.1:2025",  # me²TARA Enhanced
+        "*"  # Allow all origins for development
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
     allow_headers=["*"],
 )
 
@@ -512,6 +513,11 @@ async def hai_security_middleware(request: Request, call_next):
     
     return response
 
+@app.options("/tts/status")
+async def options_tts_status():
+    """Handle OPTIONS preflight for /tts/status"""
+    return {"message": "OK"}
+
 @app.get("/tts/status")
 async def get_tts_status():
     """HAI-Enhanced TTS status with system health information"""
@@ -605,6 +611,11 @@ async def get_available_voices():
         },
         "usage_note": "You can use any voice from 'valid_edge_voices' directly, or use aliases from 'voice_mappings' which will be automatically converted to valid voices."
     }
+
+@app.options("/tts/synthesize")
+async def options_tts_synthesize():
+    """Handle OPTIONS preflight for /tts/synthesize"""
+    return {"message": "OK"}
 
 @app.post("/tts/synthesize")
 async def synthesize_speech(request: TTSRequest, background_tasks: BackgroundTasks):
