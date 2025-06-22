@@ -32,7 +32,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from tara_universal_model.training.trainer import TARATrainer
-from tara_universal_model.utils.config import TARAConfig
+from tara_universal_model.utils.config import get_config
 from tara_universal_model.utils.data_generator import DataGenerator
 from tara_universal_model.core.universal_ai_engine import EinsteinFusion, PerplexityIntelligence
 
@@ -55,8 +55,8 @@ class MeeTARATrainingOrchestrator:
     
     def __init__(self, config_path: str = "configs/config.yaml"):
         """Initialize MeeTARA training orchestrator."""
-        self.config = TARAConfig.from_yaml(config_path)
-        self.data_generator = DataGenerator(self.config)
+        self.config = get_config(config_path)
+        self.data_generator = DataGenerator(self.config.data_config)
         self.training_metrics = {}
         self.einstein_fusion = EinsteinFusion()
         self.perplexity_intelligence = PerplexityIntelligence()
@@ -191,10 +191,14 @@ class MeeTARATrainingOrchestrator:
         logger.info(f"📝 Generating {samples_count} Trinity samples for {domain}")
         
         # Base training data generation
-        base_data = await self.data_generator.generate_domain_data(
+        data_file_path = self.data_generator.generate_domain_data(
             domain=domain,
             num_samples=samples_count
         )
+        
+        # Load the generated data
+        with open(data_file_path, 'r', encoding='utf-8') as f:
+            base_data = json.load(f)
         
         # Enhance with Trinity Architecture
         trinity_enhanced_data = []
