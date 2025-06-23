@@ -1,0 +1,190 @@
+# TARA Universal Model - Project Intelligence (.cursorrules)
+
+## Project Overview
+TARA Universal Model implements MeeTARA HAI philosophy - 504% intelligence amplification through Trinity Architecture while maintaining therapeutic relationships and complete privacy.
+
+## Critical Project Patterns
+
+### 1. User Requirements (STRICT COMPLIANCE)
+- **Track everything in MD files** - All documentation must be markdown
+- **Push successful use cases to git** - Clean commits with semantic messages
+- **Maintain fallback mechanisms** - Document alternatives for all critical systems
+- **Follow architectural design patterns** - Lifecycle structure + Memory Bank methodology
+- **Avoid unnecessary scripts/files** - Clean workspace, remove unused files
+- **Clean up logs before git commits** - Empty logs removed, workspace organized
+- **Prioritize security and legal compliance** - Privacy-first, GDPR/HIPAA compliant
+- **Don't make assumptions** - Document all decisions and rationale
+
+### 2. Memory Bank Integration Pattern
+Always read ALL memory bank files at session start:
+1. `docs/memory-bank/projectbrief.md` - Foundation understanding
+2. `docs/memory-bank/activeContext.md` - Current work focus
+3. `docs/memory-bank/progress.md` - What works, what's left, metrics
+4. `docs/memory-bank/productContext.md` - Why project exists, user goals
+5. `docs/memory-bank/systemPatterns.md` - Architecture decisions, patterns
+6. `docs/memory-bank/techContext.md` - Technologies, setup, constraints
+
+### 3. Documentation Structure Pattern
+Dual organization system:
+```
+docs/
+├── 1-vision/        # Project vision, HAI philosophy, integration plans
+├── 2-architecture/  # System design, roadmaps, technical architecture
+├── 3-development/   # Training progress, implementation, domain guides
+├── 4-testing/       # Testing strategies, validation, QA processes
+├── 5-deployment/    # Security, legal, production deployment
+└── memory-bank/     # Cursor AI session continuity (6 core files)
+```
+
+### 4. Trinity Architecture Understanding
+**Phase 1**: Arc Reactor Foundation (90% efficiency + 5x speed) - ACTIVE
+**Phase 2**: Perplexity Intelligence (context-aware reasoning) - PLANNED
+**Phase 3**: Einstein Fusion (504% amplification) - PLANNED
+**Phase 4**: Universal Trinity Deployment (complete integration) - PLANNED
+
+### 5. MeeTARA Integration Context
+- June 20, 2025: MeeTARA achieved Trinity Complete status
+- June 22, 2025: TARA Universal Model aligned with proven architecture
+- 504% intelligence amplification mathematically proven
+- HAI philosophy: "Replace every AI app with ONE intelligent companion"
+
+## Development Workflow Intelligence
+
+### Training Orchestration Pattern
+```python
+# Always use this pattern for domain training
+async def train_domains_parallel():
+    domains = ['healthcare', 'business', 'education', 'creative', 'leadership']
+    tasks = [train_domain_with_arc_reactor(domain, 2000) for domain in domains]
+    await asyncio.gather(*tasks)
+```
+
+### Privacy-First Implementation
+```python
+# Always enforce local processing for sensitive domains
+def ensure_privacy_compliance():
+    if domain == 'healthcare':
+        assert local_processing_only()
+    if sensitive_data_detected():
+        enforce_encryption()
+    return privacy_verified_response()
+```
+
+### Documentation Update Triggers
+- Phase completion or major milestones
+- Training progress significant changes  
+- User requirement modifications
+- Technical architecture changes
+- Weekly progress reviews
+
+## User Communication Patterns
+
+### When User Says "update memory bank"
+1. Review ALL 6 memory bank files (even if no changes needed)
+2. Focus on activeContext.md and progress.md for current state
+3. Update relevant files with latest information
+4. Confirm compliance with user requirements
+
+### Progress Reporting Pattern
+Always include:
+- Current phase status (Phase 1 Arc Reactor Foundation - ACTIVE)
+- Training metrics (domains, samples, efficiency targets)
+- Next immediate steps
+- Alignment with MeeTARA Trinity achievements
+
+### Error Handling Intelligence
+```python
+# Standard error handling pattern
+def handle_failures_gracefully():
+    if training_fails():
+        return fallback_to_checkpoint()
+    if model_loading_fails():
+        return lightweight_backup_model()
+    if complete_system_failure():
+        return rule_based_safe_mode()
+```
+
+## File Organization Intelligence
+
+### Always Maintain Clean State
+- Remove unnecessary files before git commits
+- Update all cross-references after folder reorganization
+- Keep documentation current with date tracking
+- Organize by both lifecycle and memory bank requirements
+
+### Critical Files to Check First
+1. **Training Status**: `scripts/train_meetara_universal_model.py`
+2. **Progress Tracker**: `docs/3-development/MEETARA_JOURNEY_TRACKER.md` 
+3. **Current Status**: `docs/memory-bank/activeContext.md`
+4. **Foundation**: `docs/memory-bank/projectbrief.md`
+
+## Technical Environment Intelligence
+
+### Development Environment
+- **OS**: Windows 10.0.26100 (PowerShell commands)
+- **Working Dir**: `C:\Users\rames\Documents\tara-universal-model`
+- **Python**: Conda base environment
+- **Dependencies**: PyTorch 2.7.1+cpu, Transformers 4.52.4, PEFT 0.15.2
+
+### PowerShell Command Patterns
+```powershell
+# Use individual commands (not chained with &&)
+mkdir docs\folder-name
+move source destination
+Get-Content file.md
+```
+
+### Git Workflow Pattern
+```bash
+# Semantic commit messages
+git add .
+git commit -m "feat: Phase X - [Description] complete"
+git commit -m "docs: Update documentation structure June 22, 2025"
+git commit -m "fix: Training pipeline optimization"
+```
+
+## Success Metrics Intelligence
+
+### Phase 1 Success Criteria
+- All 5 domains complete Arc Reactor training (2000 samples each)
+- 90% efficiency improvement validated
+- 5x speed improvement measured
+- Training pipeline proven and stable
+
+### User Experience Success
+- Seamless intelligence amplification (5x capability)
+- Emotional partnership (therapeutic relationship)
+- Complete privacy assurance (local processing)
+- Universal accessibility (single interface for all needs)
+
+## Common Pitfalls & Solutions
+
+### Documentation Pitfall
+**Issue**: Cross-references break after folder reorganization
+**Solution**: Always update internal links after moving files
+
+### Training Pitfall  
+**Issue**: Multiple domain training competes for resources
+**Solution**: Use async coordination and resource monitoring
+
+### User Requirement Pitfall
+**Issue**: Forgetting to track changes in MD files
+**Solution**: Update memory bank files with every significant change
+
+## Project Evolution Patterns
+
+### From Tool → Partner → Amplifier
+1. **AI Tool Stage**: Task completion and helpful responses
+2. **AI Partner Stage**: Therapeutic relationship and emotional support
+3. **Human Amplifier Stage**: 504% capability enhancement and Trinity integration
+
+### Documentation Evolution
+1. **Basic Structure**: Lifecycle organization (1-vision → 5-deployment)
+2. **Memory Bank Integration**: Session continuity for Cursor AI
+3. **Cross-Platform Compatibility**: Works for users and AI systems
+
+---
+
+**Last Updated**: June 22, 2025
+**Project Phase**: Phase 1 Arc Reactor Foundation Training - ACTIVE
+**Key Learning**: Dual documentation strategy serves both user requirements and AI continuity needs perfectly 

@@ -23,6 +23,7 @@ import asyncio
 import logging
 import json
 import time
+import argparse
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -393,6 +394,15 @@ class MeeTARATrainingOrchestrator:
 
 async def main():
     """Main training orchestration function."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="MeeTARA Universal Model Training")
+    parser.add_argument("--phase", type=int, default=1, help="Training phase (1-4)")
+    parser.add_argument("--domain", type=str, default="healthcare", help="Domain to train")
+    parser.add_argument("--samples", type=int, default=2000, help="Number of samples")
+    parser.add_argument("--style", type=str, default="efficient_core_processing", help="Training style")
+    
+    args = parser.parse_args()
+    
     logger.info("🚀 Starting MeeTARA Universal Model Training")
     logger.info("✨ Tony Stark + Perplexity + Einstein = 504% Amplification")
     
@@ -400,8 +410,23 @@ async def main():
         # Initialize training orchestrator
         orchestrator = MeeTARATrainingOrchestrator()
         
-        # Train all Trinity phases
-        await orchestrator.train_all_phases()
+        # Single domain training based on arguments
+        if args.domain and args.phase:
+            phase_config = {
+                "name": f"Phase {args.phase} - {args.domain.title()} Domain",
+                "enhancement": "Arc Reactor Foundation (Tony Stark Level)",
+                "training_style": args.style
+            }
+            
+            logger.info(f"🎯 Training {args.domain} domain with {args.samples} samples")
+            await orchestrator.train_domain_with_trinity(
+                domain=args.domain,
+                phase_config=phase_config,
+                samples_count=args.samples
+            )
+        else:
+            # Train all Trinity phases
+            await orchestrator.train_all_phases()
         
         logger.info("🎉 MeeTARA Training Complete!")
         logger.info("🧠 Trinity Architecture: FULLY OPERATIONAL")

@@ -77,7 +77,7 @@ class TrainingConfig:
     # Logging and Saving
     logging_steps: int = 10
     save_steps: int = 500
-    evaluation_strategy: str = "steps"
+    eval_strategy: str = "steps"
     eval_steps: int = 500
     save_total_limit: int = 3
     
