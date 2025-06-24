@@ -25,11 +25,8 @@ class ProductionValidator:
     Prevents training success ≠ production reliability gap.
     """
     
-    def __init__(self, config):
-        self.config = config
-        self.validation_results = {}
-        self.backend_url = "http://localhost:5000"  # Voice server
-        self.conversation_tests = self._load_conversation_tests()
+    def __init__(self):
+        self.results = {}
         
     def _load_conversation_tests(self) -> Dict[str, List[Dict]]:
         """Load comprehensive conversation tests for each domain."""

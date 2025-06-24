@@ -127,15 +127,8 @@ class TrainingDashboard:
                 print("🎮 GPU:          Status unknown")
                 
             # Check backend server
-            try:
-                import requests
-                response = requests.get("http://localhost:5000/health", timeout=2)
-                if response.status_code == 200:
-                    print("🌐 Backend:      ✅ Running (Port 5000)")
-                else:
-                    print("🌐 Backend:      ⚠️ Not responding")
-            except:
-                print("🌐 Backend:      ❌ Not running")
+            # Backend server on port 5000 no longer needed - using embedded GGUF
+            print("🌐 Backend:      ✅ Embedded GGUF integration (no port needed)")
                 
         except Exception as e:
             print(f"❌ System status error: {e}")

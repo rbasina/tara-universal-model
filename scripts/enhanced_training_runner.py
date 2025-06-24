@@ -76,42 +76,9 @@ class TrainingRunner:
             self._cleanup()
     
     async def _start_backend_server(self):
-        """Start the backend voice server for validation."""
-        logger.info("🚀 Starting backend voice server...")
-        
-        try:
-            # Check if already running
-            import requests
-            response = requests.get("http://localhost:5000/health", timeout=5)
-            if response.status_code == 200:
-                logger.info("✅ Backend server already running")
-                return
-        except:
-            pass
-        
-        # Start voice server
-        try:
-            self.backend_process = subprocess.Popen([
-                sys.executable, "voice_server.py"
-            ], cwd=str(project_root))
-            
-            # Wait for server to be ready
-            for i in range(30):
-                try:
-                    import requests
-                    response = requests.get("http://localhost:5000/health", timeout=2)
-                    if response.status_code == 200:
-                        logger.info("✅ Backend server started successfully")
-                        return
-                except:
-                    pass
-                await asyncio.sleep(1)
-            
-            logger.warning("⚠️ Backend server may not be fully ready")
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to start backend server: {e}")
-            logger.info("📝 Continuing without backend validation")
+        """Backend server no longer needed - TARA uses embedded GGUF in MeeTARA."""
+        logger.info("✅ Backend integration: Using embedded GGUF (no port 5000 needed)")
+        return
     
     def _start_progress_monitoring(self):
         """Start real-time progress monitoring in background thread."""

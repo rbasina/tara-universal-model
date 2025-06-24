@@ -298,7 +298,7 @@ class TARATrainer:
             warmup_ratio=self.config.training_config.warmup_ratio,
             logging_steps=self.config.training_config.logging_steps,
             save_steps=self.config.training_config.save_steps,
-            eval_strategy="no",
+            evaluation_strategy="no",
             eval_steps=self.config.training_config.eval_steps,
             save_total_limit=self.config.training_config.save_total_limit,
             fp16=self.config.training_config.fp16,

@@ -19,7 +19,7 @@
         "privacy_level": "maximum",
         "phase": "Phase 1 - Arc Reactor Foundation"
       },
-      "business": {
+    "business": {
         "primary_model": "microsoft/DialoGPT-medium",
         "model_path": "models/microsoft_DialoGPT-medium",
         "adapter_path": "models/adapters/business",
@@ -35,8 +35,8 @@
         "cpu_optimized": true,
         "memory_efficient": true,
         "phase": "Phase 1 - Arc Reactor Foundation"
-      },
-      "education": {
+    },
+    "education": {
         "primary_model": "microsoft/DialoGPT-medium",
         "model_path": "models/microsoft_DialoGPT-medium",
         "adapter_path": "models/adapters/education",

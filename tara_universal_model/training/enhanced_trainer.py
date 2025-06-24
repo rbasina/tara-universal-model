@@ -66,7 +66,7 @@ class EnhancedTARATrainer(TARATrainer):
             gradient_accumulation_steps=self.config.training_config.gradient_accumulation_steps,
             learning_rate=self.config.training_config.learning_rate,
             logging_steps=10,
-            eval_strategy="steps",
+            evaluation_strategy="steps",
             eval_steps=50,  # Validate every 50 steps
             save_steps=100,  # Save every 100 steps  
             save_total_limit=5,

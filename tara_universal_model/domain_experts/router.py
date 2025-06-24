@@ -194,7 +194,7 @@ class DomainRouter:
         ]
     
     def route_domain(self, text: str, current_domain: str = None, 
-                    emotion_context: Dict = None) -> str:
+                    emotion_context: Dict = None, conversation_context: List[Dict] = None) -> str:
         """
         Route text to appropriate professional domain.
         

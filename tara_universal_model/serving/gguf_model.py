@@ -29,6 +29,14 @@ class GGUFModelManager:
         self.config = config
         self.models: Dict[str, Any] = {}
         self.model_configs = {
+            "tara-1.0": {
+                "file": "tara-1.0-instruct-Q4_K_M.gguf",
+                "context_length": 4096,
+                "domains": ["healthcare", "business", "education", "creative", "leadership", "universal"],
+                "chat_format": "dialogpt",
+                "system_prompt": "You are TARA, an intelligent AI companion with expertise across healthcare, business, education, creative, and leadership domains. You provide empathetic, knowledgeable assistance while maintaining therapeutic relationships.",
+                "specialty": "unified_domain_expert"
+            },
             "phi-3.5": {
                 "file": "Phi-3.5-mini-instruct-Q4_K_M.gguf",
                 "context_length": 4096,
