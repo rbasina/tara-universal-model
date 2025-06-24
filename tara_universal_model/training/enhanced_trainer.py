@@ -28,7 +28,7 @@ class EnhancedTARATrainer(TARATrainer):
     
     def __init__(self, config, domain: str, base_model_name: str = None):
         super().__init__(config, domain, base_model_name)
-        self.validator = ProductionValidator(config)
+        self.validator = ProductionValidator()
         self.training_history = []
         self.validation_checkpoints = []
         
@@ -138,41 +138,9 @@ class EnhancedTARATrainer(TARATrainer):
         return output_dir
     
     async def _ensure_backend_running(self):
-        """Ensure backend voice server is running for validation."""
-        import subprocess
-        import requests
-        
-        try:
-            # Check if backend is already running
-            response = requests.get("http://localhost:5000/health", timeout=5)
-            if response.status_code == 200:
-                logger.info("✅ Backend voice server is running")
-                return
-        except:
-            logger.info("🚀 Starting backend voice server...")
-            
-            # Start voice server in background
-            try:
-                subprocess.Popen([
-                    "python", "voice_server.py"
-                ], cwd=str(Path.cwd()))
-                
-                # Wait for server to start
-                for i in range(30):  # Wait up to 30 seconds
-                    try:
-                        response = requests.get("http://localhost:5000/health", timeout=2)
-                        if response.status_code == 200:
-                            logger.info("✅ Backend voice server started successfully")
-                            return
-                    except:
-                        pass
-                    await asyncio.sleep(1)
-                
-                logger.warning("⚠️ Backend server may not be fully ready, continuing...")
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Could not start backend server: {e}")
-                logger.info("📝 Continuing with training, validation will be limited")
+        """Backend voice server no longer needed - TARA uses embedded GGUF in MeeTARA."""
+        logger.info("✅ Backend integration: Using embedded GGUF in MeeTARA (no port 5000 needed)")
+        return
 
 class ProductionValidatedTrainer(Trainer):
     """

@@ -165,13 +165,16 @@ class TARATrainer:
         """Setup LoRA configuration and wrap model."""
         logger.info("Setting up LoRA configuration")
         
+        # Determine target modules based on model architecture
+        target_modules = self._get_target_modules_for_model()
+        
         # LoRA configuration
         lora_config = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
             r=self.config.training_config.lora_r,
             lora_alpha=self.config.training_config.lora_alpha,
             lora_dropout=self.config.training_config.lora_dropout,
-            target_modules=self.config.training_config.lora_target_modules,
+            target_modules=target_modules,
             bias="none",
             fan_in_fan_out=False,
         )
@@ -202,7 +205,50 @@ class TARATrainer:
         # Print trainable parameters
         self._print_trainable_parameters()
         
-        logger.info("LoRA setup completed")
+        logger.info(f"LoRA setup completed with target modules: {target_modules}")
+    
+    def _get_target_modules_for_model(self) -> list:
+        """Automatically detect and return appropriate target modules for the model."""
+        
+        # Check model type based on model name or architecture
+        if "qwen" in self.base_model_name.lower():
+            # Qwen2.5 target modules
+            target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+            logger.info("Detected Qwen model - using Qwen target modules")
+        elif "dialougpt" in self.base_model_name.lower() or "gpt" in self.base_model_name.lower():
+            # DialoGPT/GPT target modules
+            target_modules = ["c_attn", "c_proj"]
+            logger.info("Detected DialoGPT/GPT model - using GPT target modules")
+        else:
+            # Try to detect from actual model structure
+            logger.info("Unknown model type - attempting to detect target modules from model structure")
+            target_modules = self._detect_target_modules_from_structure()
+        
+        return target_modules
+    
+    def _detect_target_modules_from_structure(self) -> list:
+        """Detect target modules by examining the model structure."""
+        potential_targets = []
+        
+        # Common target module patterns
+        qwen_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+        gpt_modules = ["c_attn", "c_proj"]
+        llama_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+        
+        # Check which modules exist in the model
+        for name, module in self.model.named_modules():
+            module_name = name.split('.')[-1]
+            if module_name in qwen_modules:
+                potential_targets.extend(qwen_modules)
+                logger.info("Detected Qwen-style modules in model")
+                break
+            elif module_name in gpt_modules:
+                potential_targets.extend(gpt_modules)
+                logger.info("Detected GPT-style modules in model")
+                break
+        
+        # Remove duplicates and return
+        return list(set(potential_targets)) if potential_targets else ["q_proj", "v_proj"]  # Safe fallback
     
     def _print_trainable_parameters(self) -> None:
         """Print the number of trainable parameters."""

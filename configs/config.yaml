@@ -3,9 +3,22 @@
 
 # Model Configuration
 model_config:
+  # Primary base model for healthcare and business
   base_model: "microsoft/DialoGPT-medium"
+  
+  # Qwen2.5 model for creative, education, leadership domains
+  qwen_model: "Qwen/Qwen2.5-3B-Instruct"
+  
   model_type: "causal_lm"
   use_quantization: false  # Disable for stability
+  
+  # Domain-specific model assignments
+  domain_models:
+    healthcare: "microsoft/DialoGPT-medium"
+    business: "microsoft/DialoGPT-medium"
+    education: "Qwen/Qwen2.5-3B-Instruct"
+    creative: "Qwen/Qwen2.5-3B-Instruct"
+    leadership: "Qwen/Qwen2.5-3B-Instruct"
   
 # HAI Training Configuration - MEMORY OPTIMIZED
 training_config:

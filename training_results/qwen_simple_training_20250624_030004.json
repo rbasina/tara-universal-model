@@ -1,0 +1,20 @@
+{
+  "creative": {
+    "status": "failed",
+    "error": "Target modules {'c_proj', 'c_attn'} not found in the base model. Please check the target modules and try again.",
+    "duration_seconds": 54.443492,
+    "timestamp": "2025-06-24T02:57:24.531729"
+  },
+  "education": {
+    "status": "failed",
+    "error": "Target modules {'c_proj', 'c_attn'} not found in the base model. Please check the target modules and try again.",
+    "duration_seconds": 39.695018,
+    "timestamp": "2025-06-24T02:58:04.230472"
+  },
+  "leadership": {
+    "status": "failed",
+    "error": "Target modules {'c_proj', 'c_attn'} not found in the base model. Please check the target modules and try again.",
+    "duration_seconds": 120.695793,
+    "timestamp": "2025-06-24T03:00:04.944520"
+  }
+}
