@@ -1,8 +1,8 @@
 # Technical Context - TARA Universal Model
 
 **📅 Created**: June 22, 2025  
-**🔄 Last Updated**: June 22, 2025  
-**🎯 Tech Status**: Phase 1 Training Active - Dependencies Validated
+**🔄 Last Updated**: June 25, 2025  
+**🎯 Tech Status**: Repository Restructuring - Backend Focus Optimization
 
 ## Technologies Used
 
@@ -10,25 +10,25 @@
 - **PyTorch 2.7.1+cpu** - Primary deep learning framework
 - **Transformers 4.52.4** - Hugging Face transformers for model architecture
 - **PEFT 0.15.2** - Parameter-Efficient Fine-Tuning for domain adaptation
-- **Microsoft Models**: DialoGPT-medium, Phi-2, Phi-3.5-mini-instruct (base models)
+- **Microsoft Models**: DialoGPT-medium (primary base model), Phi-3.5-mini-instruct (secondary base)
 
-### **Python Development Stack**
-- **Python 3.x** - Primary programming language
-- **FastAPI** - Voice server and API endpoints
-- **Asyncio** - Asynchronous processing for training coordination
-- **Logging** - Comprehensive logging and monitoring system
+### **GGUF Optimization Stack**
+- **llama.cpp** - GGUF model conversion and quantization
+- **Q4_K_M Quantization** - Primary compression method (4-bit keys, mixed precision)
+- **ctransformers** - Alternative inference library for GGUF models
+- **gguf-py** - Python utilities for GGUF file manipulation
+
+### **Voice Integration Stack**
+- **SpeechBrain** - Speech recognition, emotion detection, speaker recognition
+- **Edge TTS** - Primary text-to-speech engine
+- **pyttsx3** - Fallback TTS system
+- **Audio Processing** - Real-time voice analysis
 
 ### **Security & Privacy Stack**
 - **Fernet Encryption** - Local data encryption
 - **AES-256** - Industry-standard encryption protocols
 - **Local Storage** - No cloud dependencies for sensitive data
 - **GDPR/HIPAA Compliance** - Privacy regulation adherence
-
-### **Voice Integration Stack**
-- **Edge TTS** - Primary text-to-speech engine
-- **pyttsx3** - Fallback TTS system
-- **Speech Recognition** - Voice input processing
-- **Audio Processing** - Real-time voice analysis
 
 ## Development Setup
 
@@ -48,12 +48,11 @@ conda activate base  # Primary environment
 
 # Key Directories
 ├── configs/           # Configuration files
-├── data/             # Training and processed data
-├── models/           # Model checkpoints and adapters
-├── scripts/          # Training and utility scripts
-├── src/              # Source code components
+├── data/              # Training and processed data
+├── models/            # Model checkpoints and adapters
+├── scripts/           # Training and utility scripts
 ├── tara_universal_model/  # Main package
-└── docs/             # Documentation (lifecycle + memory-bank)
+└── docs/              # Documentation (lifecycle + memory-bank)
 ```
 
 ### **Configuration Files**
@@ -62,17 +61,48 @@ conda activate base  # Primary environment
 - **model_mapping.json** - Model routing and selection
 - **requirements.txt** - Python dependencies
 
-### **Training Infrastructure**
-```python
-# Training Orchestration Pattern
-def train_arc_reactor_foundation():
-    domains = ['healthcare', 'business', 'education', 'creative', 'leadership']
-    for domain in domains:
-        train_domain_with_arc_reactor_enhancements(domain, samples=2000)
-    
-    validate_efficiency_improvements()  # 90% efficiency target
-    validate_speed_improvements()       # 5x speed target
-```
+## GGUF Optimization Focus
+
+### **Current GGUF Models**
+- **meetara-universal-model-1.0.gguf** (4.6GB) - Primary production model
+- **Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf** (4.6GB) - Business/Analysis base
+- **Phi-3.5-mini-instruct-Q4_K_M.gguf** (2.2GB) - Programming/Technical base
+- **qwen2.5-3b-instruct-q4_0.gguf** (1.9GB) - Creative/Multilingual base
+- **llama-3.2-1b-instruct-q4_0.gguf** (0.7GB) - Quick/Mobile base
+
+### **Quantization Methods**
+| Method | Precision | File Size | Quality | Use Case |
+|--------|-----------|-----------|---------|----------|
+| Q4_K_M | 4-bit | Smallest | Good | Production default |
+| Q5_K_M | 5-bit | Medium | Better | Quality-critical domains |
+| Q2_K | 2-bit | Smallest | Reduced | Mobile/Edge deployment |
+| Q8_0 | 8-bit | Largest | Best | Development/Testing |
+
+### **GGUF Optimization Strategy**
+- **Baseline**: DialoGPT-medium (345M parameters) with LoRA adapters
+- **Compression**: 98.3% size reduction from potential 40GB+ approach
+- **Domain Integration**: 5 specialized domains in single GGUF file
+- **Research Focus**: Further optimization without quality degradation
+
+## Essential Scripts
+
+### **Training Scripts**
+- **train_domain.py** - Single domain training with DialoGPT-medium
+- **train_all_domains.py** - Parallel training of multiple domains
+- **train_meetara_universal_model.py** - Complete training orchestration
+
+### **GGUF Conversion Scripts**
+- **create_clean_gguf.py** - Basic GGUF creation with corruption prevention
+- **fix_meetara_gguf.py** - Repair corrupted GGUF files
+
+### **Monitoring Scripts**
+- **monitor_training.py** - Training progress tracking
+- **simple_web_monitor.py** - Web-based monitoring dashboard
+
+### **Utility Scripts**
+- **download_models.py** - Base model acquisition
+- **download_datasets.py** - Training data preparation
+- **serve_model.py** - Local model serving for testing
 
 ## Technical Constraints
 
@@ -83,15 +113,6 @@ def train_arc_reactor_foundation():
 - No cloud-based model APIs allowed for sensitive domains
 - Requires efficient model optimization and quantization
 
-**Implementation**:
-```python
-# Ensure local processing
-def enforce_local_processing():
-    assert network_isolation_verified()
-    assert no_external_api_calls()
-    assert all_models_loaded_locally()
-```
-
 ### **2. Memory Management Constraint**
 **Requirement**: Support long conversations without memory exhaustion
 **Impact**:
@@ -99,35 +120,12 @@ def enforce_local_processing():
 - Conversation history compression
 - Dynamic model loading/unloading
 
-**Implementation**:
-```python
-class MemoryEfficientContextManager:
-    def __init__(self, max_context_length=4096):
-        self.context_compression = ContextCompressor()
-        self.memory_monitor = ResourceMonitor()
-    
-    def manage_conversation_memory(self, conversation):
-        if self.memory_monitor.approaching_limit():
-            return self.context_compression.compress(conversation)
-```
-
-### **3. Multi-Domain Coordination Constraint**
-**Requirement**: Train and coordinate 5 domains simultaneously
+### **3. Storage Optimization Constraint**
+**Requirement**: Minimize repository and deployment size
 **Impact**:
-- Parallel processing requirements
-- Resource allocation between domains
-- Progress monitoring across multiple training processes
-
-**Implementation**:
-```python
-async def coordinate_multi_domain_training():
-    tasks = []
-    for domain in DOMAINS:
-        task = asyncio.create_task(train_domain(domain))
-        tasks.append(task)
-    
-    await asyncio.gather(*tasks)  # Parallel execution
-```
+- GGUF quantization optimization
+- Removal of redundant files and directories
+- Efficient organization of training artifacts
 
 ### **4. Privacy Compliance Constraint**
 **Requirement**: GDPR, HIPAA, CCPA compliance
@@ -137,136 +135,88 @@ async def coordinate_multi_domain_training():
 - Audit trail maintenance
 - Right to deletion implementation
 
-## Development Dependencies
-
-### **Required Python Packages**
-```
-torch==2.7.1+cpu
-transformers==4.52.4
-peft==0.15.2
-fastapi
-uvicorn
-pyttsx3
-speechrecognition
-cryptography
-asyncio
-logging
-```
-
-### **System Dependencies**
-- **Git** - Version control and collaboration
-- **PowerShell** - Primary shell environment
-- **Conda/Miniconda** - Environment management
-- **Visual Studio Code** - Primary development IDE with Cursor AI
-
-### **Model Dependencies**
-```python
-# Base Models (Pre-downloaded)
-MODELS = {
-    'microsoft/DialoGPT-medium': 'Conversational AI base',
-    'microsoft/phi-2': 'Reasoning and analysis',
-    'microsoft/Phi-3.5-mini-instruct': 'Instruction following'
-}
-```
-
 ## Technical Architecture Decisions
 
-### **1. Model Architecture Decision**
-**Choice**: Multiple specialized models vs single large model
-**Decision**: Multiple domain-specific fine-tuned models
+### **1. Base Model Decision**
+**Choice**: DialoGPT-medium (345M parameters)
 **Rationale**:
-- Better performance per domain
-- Easier compliance management (healthcare isolation)
-- Resource efficiency (load only needed models)
-- Parallel development and testing
+- Excellent conversation capabilities
+- Efficient fine-tuning with LoRA
+- Small enough for deployment on consumer hardware
+- Strong performance with domain-specific training
 
-### **2. Training Strategy Decision**
-**Choice**: Sequential vs parallel domain training
-**Decision**: Parallel training with coordination
+### **2. GGUF Format Decision**
+**Choice**: Q4_K_M quantization as default
 **Rationale**:
-- Faster overall completion
-- Better resource utilization
-- Independent domain development
-- Easier progress monitoring
+- 4-bit precision offers good balance of size and quality
+- Mixed precision maintains performance on critical operations
+- Widely supported by inference engines
+- Proven stability in production environments
 
-### **3. Storage Architecture Decision**
-**Choice**: Cloud vs local model storage
-**Decision**: Complete local storage with encrypted persistence
+### **3. Training Strategy Decision**
+**Choice**: LoRA adapters (15.32% trainable parameters)
 **Rationale**:
-- Privacy compliance requirements
-- No external dependencies
-- User data sovereignty
-- Offline operation capability
+- Parameter-efficient fine-tuning
+- Domain specialization without full model retraining
+- Faster training cycles
+- Smaller adapter files
+
+### **4. Repository Focus Decision**
+**Choice**: Backend-only repository
+**Rationale**:
+- Clear separation of concerns
+- Focus on model training and optimization
+- Simplified integration with MeeTARA frontend
+- Better organization of technical components
 
 ## Performance Targets
 
-### **Phase 1 Arc Reactor Targets**
-- **Efficiency**: 90% improvement in processing efficiency
-- **Speed**: 5x faster response times
-- **Memory**: Optimized memory usage for long conversations
-- **Throughput**: Handle multiple domain requests simultaneously
+### **GGUF Optimization Targets**
+- **File Size**: Further 10-15% reduction without quality loss
+- **Loading Speed**: <5 seconds on target hardware
+- **Inference Speed**: <1 second response time
+- **Memory Usage**: <2GB RAM during operation
 
-### **Overall System Targets**
-- **Intelligence Amplification**: 504% capability enhancement
-- **Response Time**: <2 seconds for emotional support
-- **Context Retention**: 100% across sessions
-- **Availability**: 24/7 local operation
-- **Privacy**: Zero data breaches, 100% local processing
+### **Training Efficiency Targets**
+- **Domain Training**: <2 hours per domain
+- **Sample Efficiency**: 2000 samples per domain
+- **Quality Threshold**: 97%+ improvement over base model
+- **Validation Success**: 100% clean responses
 
-## Development Tools & Workflow
+## Development Workflow
 
-### **Primary Development Tools**
-- **VS Code + Cursor AI** - Enhanced development with AI assistance
-- **Git** - Version control with semantic commits
-- **PowerShell** - Script execution and system management
-- **Python Debugger** - Development and troubleshooting
-
-### **Testing Infrastructure**
-- **Unit Tests** - Component-level validation
-- **Integration Tests** - Domain coordination testing
-- **Performance Tests** - Speed and efficiency validation
-- **Security Tests** - Privacy and compliance verification
-
-### **Monitoring & Logging**
-```python
-# Comprehensive logging system
-class TrainingMonitor:
-    def __init__(self):
-        self.progress_logger = logging.getLogger('training.progress')
-        self.performance_logger = logging.getLogger('training.performance')
-        self.security_logger = logging.getLogger('security.audit')
-    
-    def log_training_progress(self, domain, samples_completed):
-        self.progress_logger.info(f"{domain}: {samples_completed} samples completed")
+### **Repository Organization**
+```
+tara-universal-model/
+├── configs/              # Configuration files
+├── data/                 # Training data
+│   ├── raw/              # Raw training data
+│   └── processed/        # Processed training data
+├── models/               # Model files
+│   ├── adapters/         # LoRA adapters
+│   ├── gguf/             # GGUF models
+│   └── [domain]/         # Domain-specific models
+├── scripts/              # Training and utility scripts
+│   ├── train_*.py        # Training scripts
+│   ├── create_*.py       # GGUF creation scripts
+│   └── utility scripts   # Monitoring, download, etc.
+├── tara_universal_model/ # Core package
+└── docs/                 # Documentation
+    ├── memory-bank/      # Session continuity
+    └── [lifecycle]/      # Project documentation
 ```
 
-## Integration Points
+### **Script Organization**
+- **Training**: Domain-specific and universal training
+- **Conversion**: GGUF creation and optimization
+- **Monitoring**: Training progress and validation
+- **Utilities**: Data preparation and model management
 
-### **MeeTARA Integration**
-- **Trinity Architecture**: Proven system from June 20, 2025
-- **HAI Philosophy**: Complete alignment with Human-AI Intelligence principles
-- **504% Amplification**: Mathematical framework from Einstein Fusion
-- **Port Integration**: 2025 (frontend), 8765/8766 (backend), 5000 (voice)
-
-### **External System Integration**
-- **Voice Systems**: Edge TTS + pyttsx3 fallback
-- **File Systems**: Local storage with encryption
-- **Operating System**: Windows PowerShell integration
-- **Hardware**: CPU optimization for local processing
-
-## Known Technical Limitations
-
-### **Current Limitations**
-1. **Hardware Dependency**: Performance limited by local hardware capabilities
-2. **Model Size Constraints**: Must balance capability with local memory limits
-3. **Training Time**: Local training slower than cloud-based alternatives
-4. **Resource Competition**: Multiple domain training competes for system resources
-
-### **Mitigation Strategies**
-1. **Model Optimization**: Quantization and compression techniques
-2. **Smart Loading**: Dynamic model loading based on current needs
-3. **Resource Management**: Intelligent scheduling of training processes
-4. **Progressive Enhancement**: Gradual capability increases through phases
+### **Documentation Standards**
+- **Memory Bank**: Session continuity for Cursor AI
+- **Script Documentation**: Purpose and usage of each script
+- **Model Documentation**: Capabilities and integration guide
+- **Architecture Documentation**: System design and decisions
 
 ---
 
