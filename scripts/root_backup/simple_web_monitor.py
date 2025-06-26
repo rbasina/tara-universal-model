@@ -122,7 +122,7 @@ def dashboard():
     <title>TARA Universal Model - Training Monitor</title>
     <style>
         body {
-            font-family: 'Segoe UI';
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -199,6 +199,13 @@ def dashboard():
             cursor: pointer;
             font-size: 16px;
         }
+        .auto-refresh {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -207,6 +214,7 @@ def dashboard():
             <h1>🤖 TARA Universal Model</h1>
             <p>Simple Training Monitor Dashboard</p>
             <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+            <div class="auto-refresh">Auto-refreshes every 10 seconds</div>
         </div>
         <div id="content">Loading...</div>
     </div>
@@ -248,18 +256,27 @@ def dashboard():
                             <div class="domain-grid">${domainsHtml}</div>
                         </div>
                         <div class="status-card">
-                            <h2>🔍 System Info</h2>
-                            <p><strong>Last Updated:</strong> ${data.timestamp}</p>
-                            <p><strong>Active Processes:</strong> ${data.system.active_processes}</p>
-                            <p><strong>Recent Training Data:</strong> ${Object.keys(data.training_data).length} files today</p>
+                            <h2>⏱️ Last Updated</h2>
+                            <p>${data.timestamp}</p>
                         </div>
                     `;
+                })
+                .catch(err => {
+                    document.getElementById('content').innerHTML = `
+                        <div class="status-card">
+                            <h2>⚠️ Error</h2>
+                            <p>Failed to load data. Please try again.</p>
+                        </div>
+                    `;
+                    console.error(err);
                 });
         }
         
-        // Auto-refresh every 15 seconds
-        setInterval(loadData, 15000);
-        loadData(); // Initial load
+        // Load data immediately
+        loadData();
+        
+        // Auto-refresh every 10 seconds
+        setInterval(loadData, 10000);
     </script>
 </body>
 </html>'''
@@ -268,7 +285,50 @@ def dashboard():
 @app.route('/api/status')
 def api_status():
     """API endpoint for training status"""
-    return jsonify(get_training_status())
+    status_data = get_training_status()
+    
+    # Add additional fields needed by the dashboard
+    domain_config = get_domain_config()
+    model_mapping = get_model_mapping()
+    all_base_models = get_all_base_models()
+    
+    # Prepare data for model availability
+    available_models_info = {}
+    for model_name in all_base_models:
+        available_models_info[model_name] = True  # Mark as available
+    
+    # Add explicitly defined models if not already found in GGUF folder
+    explicit_models = ["DialoGPT-medium", "Phi-3.5-mini-instruct", "Qwen2.5-3B-Instruct"]
+    for model in explicit_models:
+        if model not in available_models_info:
+            available_models_info[model] = os.path.exists(os.path.join(BASE_MODEL_DIR, model))
+    
+    # Get domain statuses
+    domain_statuses = []
+    for domain, details in domain_config.items():
+        base_model_for_domain = details.get("base_model", "Unknown")
+        adapter_trained = check_adapter_status(domain, base_model_for_domain)
+        
+        status_text = "Training Complete" if adapter_trained else "Adapter Missing"
+        if not adapter_trained and base_model_for_domain not in all_base_models:
+            status_text = f"Base Model Missing ({base_model_for_domain})"
+        
+        domain_statuses.append({
+            "domain": domain,
+            "base_model": base_model_for_domain,
+            "adapter_trained": adapter_trained,
+            "status": status_text
+        })
+    
+    # Combine all data
+    status_data.update({
+        "domain_statuses": domain_statuses,
+        "model_mapping": model_mapping,
+        "available_base_models": available_models_info,
+        "all_base_models_found_in_gguf": all_base_models
+    })
+    
+    return jsonify(status_data)
 
 if __name__ == '__main__':
     print("🌐 Starting TARA Universal Model Simple Web Monitor")

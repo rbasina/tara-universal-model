@@ -36,8 +36,20 @@ class EnhancedTARATrainer(TARATrainer):
                                   resume_from_checkpoint: str = None) -> str:
         """
         Enhanced training with production validation at checkpoints.
+        
+        Args:
+            data_path: Path to training data
+            output_dir: Directory to save the model
+            resume_from_checkpoint: Path to checkpoint to resume from, or None
+            
+        Returns:
+            Path to the trained model
         """
-        logger.info(f"🚀 Enhanced training starting for {self.domain}")
+        if resume_from_checkpoint:
+            logger.info(f"🔄 Resuming training from checkpoint: {resume_from_checkpoint}")
+        else:
+            logger.info(f"🚀 Enhanced training starting for {self.domain}")
+            
         logger.info(f"📊 Production validation enabled")
         
         # Create output directory
@@ -65,19 +77,22 @@ class EnhancedTARATrainer(TARATrainer):
             per_device_eval_batch_size=self.config.training_config.batch_size,
             gradient_accumulation_steps=self.config.training_config.gradient_accumulation_steps,
             learning_rate=self.config.training_config.learning_rate,
-            logging_steps=10,
-            evaluation_strategy="steps",
-            eval_steps=50,  # Validate every 50 steps
-            save_steps=100,  # Save every 100 steps  
-            save_total_limit=5,
-            load_best_model_at_end=True,
+            weight_decay=self.config.training_config.weight_decay,
+            warmup_ratio=self.config.training_config.warmup_ratio,
+            logging_steps=self.config.training_config.logging_steps,
+            save_steps=self.config.training_config.eval_steps,
+            eval_strategy="steps",  # Changed from evaluation_strategy to eval_strategy
+            eval_steps=self.config.training_config.eval_steps,
+            save_total_limit=self.config.training_config.save_total_limit,
+            load_best_model_at_end=True,  # Re-enabled now that save_steps equals eval_steps
             metric_for_best_model="eval_loss",
             greater_is_better=False,
             report_to=None,
             remove_unused_columns=False,
             dataloader_pin_memory=False,
             fp16=self.config.training_config.fp16,
-            resume_from_checkpoint=resume_from_checkpoint
+            gradient_checkpointing=self.config.training_config.use_gradient_checkpointing,
+            dataloader_num_workers=self.config.training_config.dataloader_num_workers
         )
         
         # Custom trainer with production validation callbacks
@@ -93,9 +108,14 @@ class EnhancedTARATrainer(TARATrainer):
         )
         
         # Start training with validation
-        logger.info("🎯 Starting enhanced training with production checkpoints...")
+        if resume_from_checkpoint:
+            logger.info(f"🔄 Resuming training from checkpoint: {resume_from_checkpoint}")
+        else:
+            logger.info("🎯 Starting enhanced training with production checkpoints...")
+            
         start_time = time.time()
         
+        # Pass the resume_from_checkpoint parameter to the train method
         training_result = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
         
         training_duration = time.time() - start_time
@@ -119,7 +139,8 @@ class EnhancedTARATrainer(TARATrainer):
             "final_validation": final_validation,
             "production_ready": final_validation.get("production_ready", False),
             "validation_history": self.validation_checkpoints,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "resumed_from_checkpoint": resume_from_checkpoint is not None
         }
         
         # Save results
@@ -204,8 +225,13 @@ class TrainingOrchestrator:
         self.training_progress = {}
         self.domains = ["healthcare", "business", "education", "creative", "leadership"]
         
-    async def train_all_domains_enhanced(self):
-        """Train all domains with enhanced validation."""
+    async def train_all_domains_enhanced(self, resume_from_checkpoint: bool = False):
+        """
+        Train all domains with enhanced validation.
+        
+        Args:
+            resume_from_checkpoint: Whether to resume from latest checkpoints
+        """
         logger.info("🚀 Starting enhanced training for all domains")
         logger.info("📊 Production validation enabled for all models")
         
@@ -228,13 +254,25 @@ class TrainingOrchestrator:
                 trainer.load_base_model()
                 trainer.setup_lora()
                 
+                # Check for checkpoint if resuming
+                checkpoint_path = None
+                if resume_from_checkpoint:
+                    checkpoint_dir = f"models/{domain}/enhanced_training"
+                    if os.path.exists(checkpoint_dir):
+                        checkpoints = [d for d in os.listdir(checkpoint_dir) if d.startswith("checkpoint-")]
+                        if checkpoints:
+                            latest_checkpoint = max(checkpoints, key=lambda x: int(x.split("-")[-1]))
+                            checkpoint_path = os.path.join(checkpoint_dir, latest_checkpoint)
+                            logger.info(f"Found checkpoint for {domain}: {checkpoint_path}")
+                
                 # Train with validation
                 data_path = f"data/synthetic/{domain}_training_data.json"
                 output_dir = f"models/{domain}/enhanced_training"
                 
                 model_path = await trainer.train_with_validation(
                     data_path=data_path,
-                    output_dir=output_dir
+                    output_dir=output_dir,
+                    resume_from_checkpoint=checkpoint_path
                 )
                 
                 domain_duration = time.time() - domain_start
@@ -244,40 +282,30 @@ class TrainingOrchestrator:
                     "status": "completed",
                     "duration": domain_duration,
                     "model_path": model_path,
-                    "timestamp": datetime.now().isoformat()
+                    "resumed_from": checkpoint_path
                 }
                 
-                logger.info(f"✅ {domain} training completed in {domain_duration:.2f}s")
+                logger.info(f"✅ {domain} training completed in {domain_duration:.2f} seconds")
                 
             except Exception as e:
                 logger.error(f"❌ {domain} training failed: {e}")
                 self.training_progress[domain] = {
                     "status": "failed",
-                    "error": str(e),
-                    "timestamp": datetime.now().isoformat()
+                    "error": str(e)
                 }
         
         total_duration = time.time() - start_time
+        logger.info(f"\n🎉 All domain training completed in {total_duration:.2f} seconds")
         
-        # Save overall progress
-        overall_results = {
-            "total_duration": total_duration,
-            "domains_trained": len([d for d in self.training_progress.values() if d["status"] == "completed"]),
-            "domains_failed": len([d for d in self.training_progress.values() if d["status"] == "failed"]),
-            "domain_progress": self.training_progress,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        # Save results
+        # Save overall results
         results_path = "training_results/enhanced_training_summary.json"
         os.makedirs("training_results", exist_ok=True)
+        
         with open(results_path, 'w') as f:
-            json.dump(overall_results, f, indent=2)
+            json.dump({
+                "domains": self.training_progress,
+                "total_duration": total_duration,
+                "timestamp": datetime.now().isoformat()
+            }, f, indent=2)
         
-        logger.info(f"\n🎉 Enhanced training completed!")
-        logger.info(f"⏱️ Total time: {total_duration:.2f} seconds")
-        logger.info(f"✅ Successful: {overall_results['domains_trained']}")
-        logger.info(f"❌ Failed: {overall_results['domains_failed']}")
-        logger.info(f"📊 Results saved: {results_path}")
-        
-        return overall_results 
+        return self.training_progress 

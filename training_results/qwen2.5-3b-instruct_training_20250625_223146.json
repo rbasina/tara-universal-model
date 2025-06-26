@@ -1,0 +1,20 @@
+{
+  "education": {
+    "status": "failed",
+    "error": "--load_best_model_at_end requires the saving steps to be a round multiple of the evaluation steps, but found 100, which is not a round multiple of 500.",
+    "duration_seconds": 85.246159,
+    "timestamp": "2025-06-25T22:29:27.093471"
+  },
+  "creative": {
+    "status": "failed",
+    "error": "--load_best_model_at_end requires the saving steps to be a round multiple of the evaluation steps, but found 100, which is not a round multiple of 500.",
+    "duration_seconds": 59.397144,
+    "timestamp": "2025-06-25T22:30:26.994796"
+  },
+  "leadership": {
+    "status": "failed",
+    "error": "--load_best_model_at_end requires the saving steps to be a round multiple of the evaluation steps, but found 100, which is not a round multiple of 500.",
+    "duration_seconds": 78.126082,
+    "timestamp": "2025-06-25T22:31:45.661539"
+  }
+}

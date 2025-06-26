@@ -1,0 +1,8 @@
+{
+  "domain": "education",
+  "base_model": "Qwen/Qwen2.5-3B-Instruct",
+  "output_dir": "models/adapters/education_qwen2.5-3b-instruct",
+  "resume_checkpoint": null,
+  "start_time": "2025-06-26T11:13:46.476628",
+  "status": "training"
+}

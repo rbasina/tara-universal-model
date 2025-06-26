@@ -551,5 +551,48 @@
     "phase_3_4_target": "Target model for Phase 3-4 domains including space technology",
     "cpu_optimized": "Optimized for CPU-only training environments",
     "gguf_enhanced": "Enhanced with quantized GGUF models for better performance"
+  },
+  "generic_to_actual": {
+    "Premium-8B-Instruct": "meta-llama/Llama-3.1-8B-Instruct",
+    "Technical-3.8B-Instruct": "microsoft/Phi-3.5-mini-instruct",
+    "Efficient-1B-Instruct": "meta-llama/Llama-3.2-1B-instruct",
+    "DialoGPT-medium": "microsoft/DialoGPT-medium",
+    "Qwen2.5-3B-Instruct": "Qwen/Qwen2.5-3B-Instruct"
+  },
+  "actual_to_generic": {
+    "meta-llama/Llama-3.1-8B-Instruct": "Premium-8B-Instruct",
+    "microsoft/Phi-3.5-mini-instruct": "Technical-3.8B-Instruct",
+    "meta-llama/Llama-3.2-1B-instruct": "Efficient-1B-Instruct",
+    "microsoft/DialoGPT-medium": "DialoGPT-medium",
+    "Qwen/Qwen2.5-3B-Instruct": "Qwen2.5-3B-Instruct"
+  },
+  "parameters": {
+    "Premium-8B-Instruct": 8000000000,
+    "Technical-3.8B-Instruct": 3800000000,
+    "Efficient-1B-Instruct": 1000000000,
+    "DialoGPT-medium": 345000000,
+    "Qwen2.5-3B-Instruct": 3000000000
+  },
+  "domains": {
+    "healthcare": {
+      "optimal_model": "DialoGPT-medium",
+      "reason": "Therapeutic communication, empathy, conversational flow"
+    },
+    "business": {
+      "optimal_model": "Premium-8B-Instruct",
+      "reason": "Complex reasoning, strategic thinking, multi-step planning"
+    },
+    "education": {
+      "optimal_model": "Technical-3.8B-Instruct",
+      "reason": "Technical knowledge, instruction following, creative problem-solving"
+    },
+    "creative": {
+      "optimal_model": "Technical-3.8B-Instruct",
+      "reason": "Technical knowledge, instruction following, creative problem-solving"
+    },
+    "leadership": {
+      "optimal_model": "Premium-8B-Instruct",
+      "reason": "Complex reasoning, strategic thinking, multi-step planning"
+    }
   }
 } 

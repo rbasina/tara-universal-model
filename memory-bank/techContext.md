@@ -98,6 +98,14 @@ conda activate base  # Primary environment
 ### **Monitoring Scripts**
 - **monitor_training.py** - Training progress tracking
 - **simple_web_monitor.py** - Web-based monitoring dashboard
+- **training_recovery.py** - Automatic training recovery system
+- **monitor_and_resume_training.ps1** - PowerShell script for system-level monitoring
+
+### **Recovery System**
+- **training_recovery.py** - Monitors and resumes interrupted training
+- **training_recovery_state.json** - Saves training state for recovery
+- **resume_training.bat** - Quick recovery script for manual execution
+- **domain_optimization_dashboard.html** - Web dashboard with recovery button
 
 ### **Utility Scripts**
 - **download_models.py** - Base model acquisition

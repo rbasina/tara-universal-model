@@ -1,0 +1,20 @@
+{
+  "education": {
+    "status": "failed",
+    "error": "loaded state dict contains a parameter group that doesn't match the size of optimizer's group",
+    "duration_seconds": 82.91261,
+    "timestamp": "2025-06-26T10:37:40.793639"
+  },
+  "creative": {
+    "status": "failed",
+    "error": "loaded state dict contains a parameter group that doesn't match the size of optimizer's group",
+    "duration_seconds": 80.737777,
+    "timestamp": "2025-06-26T10:39:02.160956"
+  },
+  "leadership": {
+    "status": "failed",
+    "error": "loaded state dict contains a parameter group that doesn't match the size of optimizer's group",
+    "duration_seconds": 110.391091,
+    "timestamp": "2025-06-26T10:40:53.017998"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "domains": [
+    "education",
+    "creative",
+    "leadership"
+  ],
+  "base_model": "Qwen/Qwen2.5-3B-Instruct",
+  "resume_from_checkpoint": null,
+  "start_time": "2025-06-26T11:13:46.474466",
+  "status": "in_progress",
+  "completed_domains": [],
+  "pending_domains": [
+    "creative",
+    "leadership"
+  ],
+  "failed_domains": [],
+  "current_domain": "education",
+  "current_domain_start_time": "2025-06-26T11:13:46.475774"
+}

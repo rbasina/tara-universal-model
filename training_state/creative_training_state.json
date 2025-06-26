@@ -1,0 +1,10 @@
+{
+  "domain": "creative",
+  "base_model": "Qwen/Qwen2.5-3B-Instruct",
+  "output_dir": "models/adapters/creative_qwen2.5-3b-instruct",
+  "resume_checkpoint": "models/adapters\\creative\\checkpoint-1125",
+  "start_time": "2025-06-26T10:37:41.450663",
+  "status": "failed",
+  "error": "loaded state dict contains a parameter group that doesn't match the size of optimizer's group",
+  "failed_at": "2025-06-26T10:39:02.151409"
+}

@@ -150,11 +150,20 @@ class MeeTARATrainingOrchestrator:
             samples_count=samples_count
         )
         
-        # Initialize domain trainer
+        # Get domain-specific base model
+        domain_models = getattr(self.config.model_config, 'domain_models', {})
+        if domain in domain_models:
+            base_model_name = domain_models[domain]
+            logger.info(f"🤖 Using domain-specific model for {domain}: {base_model_name}")
+        else:
+            base_model_name = self.config.base_model_name
+            logger.info(f"🤖 Using default model for {domain}: {base_model_name}")
+        
+        # Initialize domain trainer with correct base model
         trainer = TARATrainer(
             config=self.config,
             domain=domain,
-            base_model_name=self.config.base_model_name
+            base_model_name=base_model_name
         )
         
         try:
@@ -393,48 +402,84 @@ class MeeTARATrainingOrchestrator:
         logger.info("🎉 MeeTARA Universal Model: TRINITY COMPLETE!")
 
 async def main():
-    """Main training orchestration function."""
-    # Parse command line arguments
+    """Main entry point for MeeTARA Universal Model Training."""
     parser = argparse.ArgumentParser(description="MeeTARA Universal Model Training")
-    parser.add_argument("--phase", type=int, default=1, help="Training phase (1-4)")
-    parser.add_argument("--domain", type=str, default="healthcare", help="Domain to train")
-    parser.add_argument("--samples", type=int, default=2000, help="Number of samples")
-    parser.add_argument("--style", type=str, default="efficient_core_processing", help="Training style")
+    parser.add_argument(
+        "--domains",
+        nargs="+",
+        default=None,
+        help="List of specific domains to train (default: all domains from config)"
+    )
+    parser.add_argument(
+        "--phase",
+        type=str,
+        choices=["phase_1_arc_reactor", "phase_2_perplexity", "phase_3_einstein", "phase_4_universal", "all"],
+        default="all",
+        help="Specific Trinity phase to train (default: all phases)"
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=None,
+        help="Override base model for all domains (default: use config-specified models)"
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configs/config.yaml",
+        help="Path to configuration file (default: configs/config.yaml)"
+    )
     
     args = parser.parse_args()
     
-    logger.info("🚀 Starting MeeTARA Universal Model Training")
-    logger.info("✨ Tony Stark + Perplexity + Einstein = 504% Amplification")
+    # Initialize orchestrator with specified config
+    orchestrator = MeeTARATrainingOrchestrator(config_path=args.config)
     
-    try:
-        # Initialize training orchestrator
-        orchestrator = MeeTARATrainingOrchestrator()
+    # Override base model if specified
+    if args.model:
+        logger.info(f"Overriding base model with: {args.model}")
+        orchestrator.config.base_model_name = args.model
+    
+    # Train specific phase or all phases
+    if args.phase != "all":
+        logger.info(f"Training specific phase: {args.phase}")
         
-        # Single domain training based on arguments
-        if args.domain and args.phase:
-            phase_config = {
-                "name": f"Phase {args.phase} - {args.domain.title()} Domain",
-                "enhancement": "Arc Reactor Foundation (Tony Stark Level)",
-                "training_style": args.style
-            }
+        # Get phase config
+        phase_config = orchestrator.trinity_phases.get(args.phase)
+        if not phase_config:
+            logger.error(f"Unknown phase: {args.phase}")
+            return
+        
+        # Filter domains if specified
+        if args.domains:
+            domains = [d for d in args.domains if d in phase_config["domains"]]
+            logger.info(f"Training specific domains: {domains}")
             
-            logger.info(f"🎯 Training {args.domain} domain with {args.samples} samples")
+            # Override phase domains
+            phase_config["domains"] = domains
+        
+        # Train the specific phase
+        phase_start_time = time.time()
+        
+        for domain in phase_config["domains"]:
             await orchestrator.train_domain_with_trinity(
-                domain=args.domain,
+                domain=domain,
                 phase_config=phase_config,
-                samples_count=args.samples
+                samples_count=phase_config["samples_per_domain"]
             )
-        else:
-            # Train all Trinity phases
-            await orchestrator.train_all_phases()
         
-        logger.info("🎉 MeeTARA Training Complete!")
-        logger.info("🧠 Trinity Architecture: FULLY OPERATIONAL")
-        logger.info("⚡ Intelligence Amplification: 504% ACHIEVED")
+        phase_duration = time.time() - phase_start_time
+        logger.info(f"✅ Phase {args.phase} completed in {phase_duration:.2f} seconds")
         
-    except Exception as e:
-        logger.error(f"❌ MeeTARA Training failed: {e}")
-        raise
+    else:
+        # Train all phases
+        await orchestrator.train_all_phases()
 
 if __name__ == "__main__":
+    # Create necessary directories
+    os.makedirs("logs", exist_ok=True)
+    os.makedirs("data/processed", exist_ok=True)
+    os.makedirs("models", exist_ok=True)
+    
+    # Run training
     asyncio.run(main()) 
