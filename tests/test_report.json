@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-06-27T13:16:07.494954",
+  "project": "TARA Universal Model",
+  "test_summary": {
+    "total_tests": 0,
+    "passed": 0,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "success_rate": 0.0
+  },
+  "coverage": {
+    "overall_coverage": 0.0,
+    "modules": {}
+  },
+  "test_categories": {
+    "gguf_conversion": {
+      "tests": 0,
+      "passed": 0,
+      "failed": 0
+    },
+    "training_recovery": {
+      "tests": 0,
+      "passed": 0,
+      "failed": 0
+    },
+    "connection_recovery": {
+      "tests": 0,
+      "passed": 0,
+      "failed": 0
+    },
+    "integration": {
+      "tests": 0,
+      "passed": 0,
+      "failed": 0
+    }
+  },
+  "performance_metrics": {
+    "test_execution_time": 0.0,
+    "memory_usage": 0.0,
+    "cpu_usage": 0.0
+  }
+}

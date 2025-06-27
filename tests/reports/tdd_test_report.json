@@ -1,0 +1,45 @@
+{
+  "timestamp": "2025-06-27T13:16:40.883959",
+  "total_tests": 74,
+  "passed": 69,
+  "failed": 5,
+  "errors": 0,
+  "skipped": 0,
+  "coverage": 0.0,
+  "test_categories": {
+    "unit_tests": {
+      "total": 61,
+      "passed": 56,
+      "failed": 5,
+      "errors": 0
+    },
+    "integration_tests": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0
+    },
+    "system_tests": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "errors": 0
+    }
+  },
+  "performance_metrics": {
+    "execution_time_seconds": 20.318912267684937,
+    "tests_per_second": 3.6419272363161443
+  },
+  "quality_metrics": {
+    "flake8": {
+      "status": "failed",
+      "issues": 4062
+    },
+    "black": {
+      "status": "failed"
+    },
+    "bandit": {
+      "status": "failed"
+    }
+  }
+}
