@@ -1,7 +1,7 @@
 # System Patterns - TARA Universal Model
 
 **📅 Created**: June 22, 2025  
-**🔄 Last Updated**: June 22, 2025  
+**🔄 Last Updated**: June 27, 2025  
 **🎯 Architecture Status**: Trinity Architecture - Phase 1 Active
 
 ## System Architecture Overview
@@ -406,8 +406,233 @@ def ensure_privacy_compliance():
     return privacy_verified_response()
 ```
 
+## Training System Patterns
+
+### CPU-Optimized Training Pattern (June 27, 2025)
+For training on CPU-only systems, we've established the following optimization pattern:
+
+```yaml
+# CPU-Optimized Training Configuration
+training_config:
+  batch_size: 1              # Reduced from 2 for lower memory usage
+  max_sequence_length: 64    # Reduced from 128 for faster processing
+  lora_r: 4                  # Reduced from 8 for faster training
+  lora_alpha: 8              # Reduced from 16 for faster training
+  save_steps: 20             # More frequent checkpoints (was 50)
+  max_steps: 200             # Set limit for faster completion
+  gradient_accumulation_steps: 1
+  fp16: false                # Disabled for CPU stability
+  use_gradient_checkpointing: false
+  dataloader_num_workers: 0  # Disabled for memory stability
+```
+
+This pattern significantly improves training speed and stability on CPU systems while maintaining acceptable quality.
+
+### State Tracking Pattern
+We've implemented a robust state tracking pattern for domain training:
+
+1. **Domain-specific State Files**: Each domain has its own state file in `training_state/{domain}_training_state.json`
+2. **Periodic Updates**: State files are updated every 60 seconds during training
+3. **Checkpoint Tracking**: State files track the latest checkpoint and current step
+4. **Status Tracking**: Status transitions (starting → loading_model → training → completed/failed)
+
+```json
+{
+  "domain": "domain_name",
+  "base_model": "model_name",
+  "output_dir": "output_directory",
+  "resume_checkpoint": "checkpoint_path",
+  "start_time": "timestamp",
+  "status": "training",
+  "retries": 0,
+  "current_step": 150,
+  "total_steps": 400,
+  "progress_percentage": 37,
+  "last_update": "timestamp",
+  "notes": "Training in progress"
+}
+```
+
+### Checkpoint Management Pattern
+Our checkpoint management follows a dual-directory structure:
+
+1. **Primary Location**: `models/{domain}/meetara_trinity_phase_efficient_core_processing/checkpoint-{step}`
+2. **Secondary Location**: `models/adapters/{domain}_{model_short_name}/checkpoint-{step}`
+
+This pattern provides:
+- Domain-specific organization
+- Cross-compatibility with different model loading approaches
+- Backup redundancy
+- Easier checkpoint validation and recovery
+
+### Training Monitoring Pattern
+We've established a monitoring pattern for training:
+
+1. **Domain-specific Logs**: `logs/{domain}_training.log`
+2. **State File Monitoring**: Real-time updates to state files
+3. **Process Monitoring**: Track Python processes running training scripts
+4. **Dashboard Integration**: Visual progress tracking
+
+This pattern ensures visibility into training progress and early detection of issues.
+
 ---
 
 **🏗️ Architecture Status**: Trinity Foundation - Phase 1 Arc Reactor Active  
 **🔄 Pattern Evolution**: Proven MeeTARA Trinity → TARA Implementation → Universal Deployment  
 **🎯 Design Philosophy**: Human enhancement through intelligent partnership, privacy-first, therapeutic relationships 
+
+## 🚦 **GGUF Parent Domain Strategy (2025-06-27 Update)**
+
+- **Training is always at the subdomain level.** Each subdomain (e.g., healthcare, nutrition, business, education) is trained as a LoRA adapter on its own optimal base model.
+- **Parent domain GGUFs are for packaging only.** After training, group all LoRA adapters for a parent family (e.g., Health & Wellness) with their base model into a single GGUF file (e.g., meetara-healthcare-family-v1.0.gguf).
+- **Do NOT train at the parent domain level.** Parent GGUFs are not trained directly; they are created by merging subdomain adapters and the base model.
+- **Use intelligent routing at inference.** A router/meta file (e.g., meetara-universal-router.json) maps user intent/domain to the correct parent GGUF and adapter.
+- **Speech/emotion/voice models are packaged separately.** These are referenced as needed by the router or serving code.
+
+### **Step-by-Step Workflow**
+1. **Train LoRA adapters for each subdomain** on its optimal base model.
+2. **Package all adapters for a parent family** (plus the base model) into a single parent GGUF file.
+3. **Create a router/meta file** to map domains to parent GGUFs and adapters.
+4. **Serve using intelligent routing**: load only the required GGUF and adapter for each request.
+5. **Keep speech/emotion models in a dedicated directory** and reference as needed.
+
+### **Summary Table**
+| Parent Family   | Base Model                | GGUF File Name                        | Subdomains Included                |
+|-----------------|--------------------------|---------------------------------------|------------------------------------|
+| Healthcare      | DialoGPT-medium (345M)   | meetara-healthcare-family-v1.0.gguf   | healthcare, mental_health, ...     |
+| Business        | DialoGPT-medium (345M)   | meetara-business-family-v1.0.gguf     | business, customer_service, ...    |
+| Education       | Qwen2.5-3B-Instruct (3B) | meetara-education-family-v1.0.gguf    | education, research, ...           |
+| Creative        | Qwen2.5-3B-Instruct (3B) | meetara-creative-family-v1.0.gguf     | creative, arts, ...                |
+| Leadership      | Qwen2.5-3B-Instruct (3B) | meetara-leadership-family-v1.0.gguf   | leadership, hr, ...                |
+| Technical       | Phi-3.5-mini-instruct    | meetara-technical-family-v1.0.gguf    | programming, tech, ...             |
+```
+
+## 🏗️ Core Architecture Patterns
+
+### 1. Trinity Architecture
+The foundation of TARA Universal Model with three interconnected systems:
+- **Arc Reactor Foundation** (90% efficiency + 5x speed) - ACTIVE
+- **Perplexity Intelligence** (context-aware reasoning) - PLANNED
+- **Einstein Fusion** (504% amplification) - PLANNED
+
+### 2. Memory Bank Methodology
+- 6 core files for session continuity
+- Hierarchical information organization
+- Cross-session knowledge preservation
+- Documentation-first approach
+
+### 3. Domain Specialization Pattern
+- Domain-specific training with shared base model
+- LoRA adapters for efficient fine-tuning
+- Parallel training with resource optimization
+- Checkpoint isolation and recovery
+
+### 4. GGUF Conversion System
+- **Universal GGUF Factory** for intelligent model creation
+- **Emotional Intelligence Engine** for response modulation
+- **Intelligent Router** for domain selection (40% content, 30% emotion, 20% speed, 10% quality)
+- **Compression Utilities** for optimized deployment (Q2_K, Q4_K_M, Q5_K_M, Q8_0)
+- **Phase Manager** for lifecycle coordination
+
+## 🔄 Training Patterns
+
+### 1. Robust Checkpoint Handling
+- Domain-specific checkpoint directories
+- Automatic validation and backup
+- Cross-directory compatibility
+- Symlink/junction support for Windows/Unix
+
+### 2. State File Management
+- Complete initialization at script start
+- Status updates at transition points
+- Detailed progress metrics
+- Recovery-oriented design
+
+### 3. Resource Optimization
+- Memory-aware training configuration
+- Ultra-optimized settings for constrained environments
+- Batch size, sequence length, and LoRA rank adjustments
+- Prioritized domain training
+
+### 4. Failure Recovery
+- Multi-level recovery mechanisms
+- State preservation between sessions
+- Automatic resumption from interruptions
+- Progress tracking and validation
+
+## 🔧 Implementation Patterns
+
+### 1. Training Script Pattern
+```python
+async def train_domains_parallel():
+    domains = ['healthcare', 'business', 'education', 'creative', 'leadership']
+    tasks = [train_domain_with_arc_reactor(domain, 2000) for domain in domains]
+    await asyncio.gather(*tasks)
+```
+
+### 2. Privacy-First Pattern
+```python
+def ensure_privacy_compliance():
+    if domain == 'healthcare':
+        assert local_processing_only()
+    if sensitive_data_detected():
+        enforce_encryption()
+    return privacy_verified_response()
+```
+
+### 3. Error Handling Pattern
+```python
+def handle_failures_gracefully():
+    if training_fails():
+        return fallback_to_checkpoint()
+    if model_loading_fails():
+        return lightweight_backup_model()
+    if complete_system_failure():
+        return rule_based_safe_mode()
+```
+
+### 4. GGUF Creation Pattern
+```python
+def create_universal_model(domains, quantization="Q4_K_M"):
+    # Initialize the factory
+    factory = UniversalGGUFFactory()
+    
+    # Add domains with emotional intelligence
+    for domain in domains:
+        factory.add_domain(domain, emotional_intelligence=True)
+    
+    # Configure intelligent routing
+    factory.configure_router(
+        content_weight=0.4,
+        emotional_weight=0.3,
+        speed_weight=0.2,
+        quality_weight=0.1
+    )
+    
+    # Build and compress the model
+    return factory.build(
+        quantization=quantization,
+        validate=True,
+        cleanup=True
+    )
+```
+
+## 📊 Monitoring Patterns
+
+### 1. Training Progress Tracking
+- Real-time state file updates
+- Dashboard integration
+- Domain-specific logging
+- Resource utilization monitoring
+
+### 2. Quality Assurance
+- Validation checkpoints
+- Response quality metrics
+- Emotional intelligence validation
+- Cross-domain consistency checks
+
+### 3. Deployment Verification
+- Pre-deployment validation
+- Post-deployment testing
+- Rollback support
+- Performance benchmarking
