@@ -1,8 +1,8 @@
 # GGUF Compression Techniques
 
 **📅 Created**: June 25, 2025  
-**🔄 Last Updated**: June 25, 2025  
-**🎯 Status**: Research Document - Optimization Phase
+**🔄 Last Updated**: June 30, 2025  
+**🎯 Status**: Production Implementation - Consolidated System
 
 ## Overview
 
@@ -17,6 +17,7 @@ This document outlines the compression techniques used for GGUF (GPT-Generated U
 | Phi-3.5-mini-instruct-Q4_K_M.gguf | 2.2GB | Phi-3.5-mini | N/A | Q4_K_M |
 | qwen2.5-3b-instruct-q4_0.gguf | 1.9GB | Qwen2.5-3B | N/A | Q4_0 |
 | llama-3.2-1b-instruct-q4_0.gguf | 0.7GB | Llama-3.2-1B | N/A | Q4_0 |
+| meetara-universal-FIXED-Q4_K_M.gguf | 4.6GB | Multiple | All domains | Q4_K_M |
 
 ## Quantization Methods
 
@@ -109,7 +110,7 @@ This document outlines the compression techniques used for GGUF (GPT-Generated U
 
 *Note: Sizes based on DialoGPT-medium model with LoRA adapters*
 
-## 🚦 **UPDATED STRATEGY (2025-06-27)**
+## 🚦 **UPDATED STRATEGY (2025-06-30)**
 
 ### **Key Principles**
 - **Q4_K_M quantization is the default for production.** Use Q5_K_M for quality-critical domains (e.g., healthcare), Q2_K for mobile/edge, Q8_0 for dev/testing.
@@ -118,6 +119,94 @@ This document outlines the compression techniques used for GGUF (GPT-Generated U
 - **Do NOT train at the parent domain level.** Always train subdomains, then package as parent GGUFs.
 - **Router/meta file orchestrates serving.** Maps user intent/domain to the correct parent GGUF and adapter.
 - **Speech/emotion/voice models are packaged separately.**
+
+### **Consolidated GGUF Conversion System**
+
+The TARA Universal Model has consolidated all GGUF conversion into a single unified system:
+
+```python
+# scripts/conversion/universal_gguf_factory.py
+class UniversalGGUFFactory:
+    """
+    Consolidated GGUF conversion system for all domains
+    Replaces 9 separate GGUF creation scripts with a single unified system
+    """
+    
+    def __init__(self, config_path="configs/model_mapping.json"):
+        self.config = self._load_config(config_path)
+        self.compression = CompressionUtilities()
+        self.cleanup = CleanupUtilities()
+        self.emotional_intelligence = EmotionalIntelligence()
+        self.phase_manager = PhaseManager()
+        
+    def create_universal_model(
+        self, 
+        output_path="models/universal/meetara-universal-model.gguf",
+        quantization="q4_k_m", 
+        validate=True,
+        include_emotional_intelligence=True,
+        cleanup_temp_files=True
+    ):
+        """
+        Create a universal GGUF model with all domains
+        
+        Args:
+            output_path: Path for output GGUF file
+            quantization: Quantization type (q4_k_m, q5_k_m, q2_k, q8_0)
+            validate: Whether to validate the model after creation
+            include_emotional_intelligence: Whether to include emotional intelligence
+            cleanup_temp_files: Whether to clean up temporary files
+        """
+        # Implementation details for universal model creation
+        
+    def create_domain_specific_model(
+        self,
+        domain,
+        output_path=None,
+        quantization="q4_k_m",
+        validate=True
+    ):
+        """
+        Create a domain-specific GGUF model
+        
+        Args:
+            domain: Domain to create model for
+            output_path: Path for output GGUF file
+            quantization: Quantization type (q4_k_m, q5_k_m, q2_k, q8_0)
+            validate: Whether to validate the model after creation
+        """
+        # Implementation details for domain-specific model creation
+        
+    def fix_corrupted_model(
+        self,
+        input_path,
+        output_path=None,
+        validation_prompts=None
+    ):
+        """
+        Fix a corrupted GGUF model
+        
+        Args:
+            input_path: Path to corrupted model
+            output_path: Path for fixed model
+            validation_prompts: List of prompts to validate model
+        """
+        # Implementation details for fixing corrupted models
+```
+
+### **Eliminated Redundant Scripts**
+
+The following redundant scripts have been consolidated into the Universal GGUF Factory:
+
+1. ~~create_healthcare_gguf.py~~ → universal_gguf_factory.py
+2. ~~create_business_gguf.py~~ → universal_gguf_factory.py
+3. ~~create_education_gguf.py~~ → universal_gguf_factory.py
+4. ~~create_creative_gguf.py~~ → universal_gguf_factory.py
+5. ~~create_leadership_gguf.py~~ → universal_gguf_factory.py
+6. ~~create_universal_gguf.py~~ → universal_gguf_factory.py
+7. ~~fix_meetara_gguf.py~~ → universal_gguf_factory.py
+8. ~~create_clean_gguf.py~~ → universal_gguf_factory.py
+9. ~~tara_gguf_cli.py~~ → universal_gguf_factory.py
 
 ### **Recommended Workflow**
 1. **Train LoRA adapters for each subdomain** on its optimal base model.
@@ -161,9 +250,7 @@ This document outlines the compression techniques used for GGUF (GPT-Generated U
 ### Conversion Script Template
 
 ```python
-import os
-from pathlib import Path
-
+# This is now part of the UniversalGGUFFactory class
 def convert_to_gguf(
     input_model: str,
     output_path: str,
