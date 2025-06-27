@@ -6,12 +6,12 @@
   "start_time": "2025-06-27T03:10:34.630297",
   "status": "training",
   "retries": 0,
-  "current_step": 197,
+  "current_step": 204,
   "total_steps": 400,
-  "progress_percentage": 49,
-  "last_update": "2025-06-27T12:17:23.180389",
+  "progress_percentage": 51,
+  "last_update": "2025-06-27T12:37:25.035634",
   "loss": 0.1173,
   "learning_rate": 0.00021749999999999997,
   "epoch": 0.35,
-  "notes": "Training in progress - step 197/400 (49%)"
+  "notes": "Training in progress - step 204/400 (51%)"
 }
