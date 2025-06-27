@@ -109,6 +109,30 @@ This document outlines the compression techniques used for GGUF (GPT-Generated U
 
 *Note: Sizes based on DialoGPT-medium model with LoRA adapters*
 
+## 🚦 **UPDATED STRATEGY (2025-06-27)**
+
+### **Key Principles**
+- **Q4_K_M quantization is the default for production.** Use Q5_K_M for quality-critical domains (e.g., healthcare), Q2_K for mobile/edge, Q8_0 for dev/testing.
+- **LoRA adapters are used for parameter-efficient fine-tuning.** Each subdomain is trained as a LoRA adapter on its optimal base model.
+- **Parent GGUFs are created by merging the base model and all LoRA adapters for a parent family.**
+- **Do NOT train at the parent domain level.** Always train subdomains, then package as parent GGUFs.
+- **Router/meta file orchestrates serving.** Maps user intent/domain to the correct parent GGUF and adapter.
+- **Speech/emotion/voice models are packaged separately.**
+
+### **Recommended Workflow**
+1. **Train LoRA adapters for each subdomain** on its optimal base model.
+2. **Quantize using Q4_K_M** (or Q5_K_M/Q2_K/Q8_0 as needed).
+3. **Package all adapters for a parent family** (plus the base model) into a single parent GGUF file.
+4. **Create a router/meta file** to map domains to parent GGUFs and adapters.
+5. **Serve using intelligent routing**: load only the required GGUF and adapter for each request.
+6. **Keep speech/emotion models in a dedicated directory** and reference as needed.
+
+### **Key Reminders**
+- Parent GGUFs = packaging, not training.
+- Subdomain LoRA adapters = trained units.
+- Router/meta file = orchestration for serving.
+- Speech/emotion models = separate GGUFs.
+
 ## Optimization Strategy
 
 ### Current Approach

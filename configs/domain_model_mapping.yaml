@@ -1,0 +1,109 @@
+# TARA Universal Model - Domain-to-Model Mapping
+# Source of Truth for all domain-to-model assignments
+# 
+# PHASE 1 (CURRENT): CPU-optimized foundation models
+# PHASE 2 (PLANNED): Upgrade to Phi-3.5-mini-instruct for enhanced reasoning
+#
+# Note: Phi-2 (2.7B) available but too memory-intensive for current CPU training
+#       Phi-3.5-mini-instruct (3.8B) planned for Phase 2 upgrade
+
+domain_models:
+  # Health & Wellness
+  healthcare: "microsoft/DialoGPT-medium"
+  mental_health: "microsoft/DialoGPT-medium"
+  fitness: "microsoft/DialoGPT-medium"
+  nutrition: "Qwen/Qwen2.5-3B-Instruct"
+  sleep: "Qwen/Qwen2.5-3B-Instruct"
+  preventive_care: "Qwen/Qwen2.5-3B-Instruct"
+
+  # Daily Life & Relationships
+  home_management: "Qwen/Qwen2.5-3B-Instruct"
+  parenting: "microsoft/DialoGPT-medium"
+  relationships: "microsoft/DialoGPT-medium"
+  personal_assistant: "microsoft/DialoGPT-medium"
+  shopping: "Qwen/Qwen2.5-3B-Instruct"
+  planning: "Qwen/Qwen2.5-3B-Instruct"
+  transportation: "Qwen/Qwen2.5-3B-Instruct"
+  communication: "microsoft/DialoGPT-medium"
+
+  # Professional & Career
+  business: "microsoft/DialoGPT-medium"
+  leadership: "Qwen/Qwen2.5-3B-Instruct"
+  hr: "microsoft/DialoGPT-medium"
+  customer_service: "microsoft/DialoGPT-medium"
+  sales: "microsoft/DialoGPT-medium"
+  life_coaching: "microsoft/DialoGPT-medium"
+  social_support: "microsoft/DialoGPT-medium"
+
+  # Education & Learning
+  education: "Qwen/Qwen2.5-3B-Instruct"
+  teaching: "Qwen/Qwen2.5-3B-Instruct"
+  language_learning: "Qwen/Qwen2.5-3B-Instruct"
+  research: "Qwen/Qwen2.5-3B-Instruct"
+  programming_tech: "Qwen/Qwen2.5-3B-Instruct"
+
+  # Specialized Skills & Interests
+  creative: "Qwen/Qwen2.5-3B-Instruct"
+  sports_recreation: "Qwen/Qwen2.5-3B-Instruct"
+  mythology: "Qwen/Qwen2.5-3B-Instruct"
+  spiritual: "microsoft/DialoGPT-medium"
+  yoga: "microsoft/DialoGPT-medium"
+  psychology: "microsoft/DialoGPT-medium"
+
+  # Financial & Legal
+  financial_planning: "Qwen/Qwen2.5-3B-Instruct"
+  legal_assistance: "Qwen/Qwen2.5-3B-Instruct"
+  real_estate: "Qwen/Qwen2.5-3B-Instruct"
+  insurance: "Qwen/Qwen2.5-3B-Instruct"
+
+  # Emergency & Crisis
+  emergency_response: "Qwen/Qwen2.5-3B-Instruct"
+  crisis_management: "microsoft/DialoGPT-medium"
+  disaster_preparedness: "Qwen/Qwen2.5-3B-Instruct"
+  safety_security: "Qwen/Qwen2.5-3B-Instruct"
+
+  # Industry & Technology
+  agriculture: "Qwen/Qwen2.5-3B-Instruct"
+  space_technology: "Qwen/Qwen2.5-3B-Instruct"
+  aeronautics: "Qwen/Qwen2.5-3B-Instruct"
+  automobile: "Qwen/Qwen2.5-3B-Instruct"
+  manufacturing: "Qwen/Qwen2.5-3B-Instruct"
+
+  # Travel & Tourism
+  travel_tourism: "Qwen/Qwen2.5-3B-Instruct"
+
+# PHASE 2 UPGRADE MAPPING (Planned)
+# Domains that will upgrade to Phi-3.5-mini-instruct for enhanced reasoning
+phase_2_upgrades:
+  # Professional domains requiring advanced reasoning
+  business: "microsoft/Phi-3.5-mini-instruct"      # +1,000% parameters
+  leadership: "microsoft/Phi-3.5-mini-instruct"    # +27% parameters
+  education: "microsoft/Phi-3.5-mini-instruct"     # +27% parameters
+  creative: "microsoft/Phi-3.5-mini-instruct"      # +27% parameters
+  
+  # Specialized domains requiring technical reasoning
+  research: "microsoft/Phi-3.5-mini-instruct"
+  programming_tech: "microsoft/Phi-3.5-mini-instruct"
+  legal_assistance: "microsoft/Phi-3.5-mini-instruct"
+  financial_planning: "microsoft/Phi-3.5-mini-instruct"
+  
+  # New Phase 2 domains
+  mental_health: "microsoft/Phi-3.5-mini-instruct"
+  career: "microsoft/Phi-3.5-mini-instruct"
+  entrepreneurship: "microsoft/Phi-3.5-mini-instruct"
+  personal_organization: "microsoft/Phi-3.5-mini-instruct"
+
+# MODEL AVAILABILITY NOTES
+model_availability:
+  microsoft_phi_2:
+    status: "available"
+    path: "models/microsoft_phi-2"
+    parameters: "2.7B"
+    issue: "Too memory-intensive for current CPU training"
+    note: "Requires GPU or high-memory CPU setup"
+  
+  microsoft_phi_3_5_mini_instruct:
+    status: "phase_2_target"
+    gguf_path: "models/gguf/Phi-3.5-mini-instruct-Q4_K_M.gguf"
+    parameters: "3.8B"
+    note: "Planned for Phase 2 upgrade when GPU available" 

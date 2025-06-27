@@ -1,0 +1,327 @@
+{
+  "domains": [
+    {
+      "name": "Healthcare",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Mental Health",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Fitness",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Nutrition",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Sleep",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Preventive Care",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Home Management",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Parenting",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Relationships",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Personal Assistant",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Shopping",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Planning",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Transportation",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Communication",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Business",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Leadership",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Hr",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Customer Service",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Sales",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Life Coaching",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Social Support",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Education",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "in_progress",
+      "progress": "33% (134/400)",
+      "model_size": null
+    },
+    {
+      "name": "Teaching",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Language Learning",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Research",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Programming Tech",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Creative",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "in_progress",
+      "progress": "49% (197/400)",
+      "model_size": null
+    },
+    {
+      "name": "Sports Recreation",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Mythology",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Spiritual",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Yoga",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Psychology",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Financial Planning",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Legal Assistance",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Real Estate",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Insurance",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Emergency Response",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Crisis Management",
+      "current_model": "microsoft/DialoGPT-medium",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Disaster Preparedness",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Safety Security",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Agriculture",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Space Technology",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Aeronautics",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Automobile",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Manufacturing",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    },
+    {
+      "name": "Travel Tourism",
+      "current_model": "Qwen/Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": null
+    }
+  ],
+  "total_size_gb": "0.0"
+}

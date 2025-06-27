@@ -269,3 +269,37 @@ meetara-universal-model/
 4. **Implement parent domain GGUF creation scripts**
 
 **🎯 This parent domain strategy provides optimal organization, performance, and scalability for the TARA Universal Model GGUF architecture!** 
+
+---
+
+## 🚦 **UPDATED STRATEGY (2025-06-27)**
+
+### **Key Principles**
+- **Training is always at the subdomain level.** Each subdomain (e.g., healthcare, nutrition, business, education) is trained as a LoRA adapter on its own optimal base model.
+- **Parent domain GGUFs are for packaging only.** After training, group all LoRA adapters for a parent family (e.g., Health & Wellness) with their base model into a single GGUF file (e.g., meetara-healthcare-family-v1.0.gguf).
+- **Do NOT train at the parent domain level.** Parent GGUFs are not trained directly; they are created by merging subdomain adapters and the base model.
+- **Use intelligent routing at inference.** A router/meta file (e.g., meetara-universal-router.json) maps user intent/domain to the correct parent GGUF and adapter.
+- **Speech/emotion/voice models are packaged separately.** These are referenced as needed by the router or serving code.
+
+### **Step-by-Step Workflow**
+1. **Train LoRA adapters for each subdomain** on its optimal base model.
+2. **Package all adapters for a parent family** (plus the base model) into a single parent GGUF file.
+3. **Create a router/meta file** to map domains to parent GGUFs and adapters.
+4. **Serve using intelligent routing**: load only the required GGUF and adapter for each request.
+5. **Keep speech/emotion models in a dedicated directory** and reference as needed.
+
+### **Summary Table**
+| Parent Family   | Base Model                | GGUF File Name                        | Subdomains Included                |
+|-----------------|--------------------------|---------------------------------------|------------------------------------|
+| Healthcare      | DialoGPT-medium (345M)   | meetara-healthcare-family-v1.0.gguf   | healthcare, mental_health, ...     |
+| Business        | DialoGPT-medium (345M)   | meetara-business-family-v1.0.gguf     | business, customer_service, ...    |
+| Education       | Qwen2.5-3B-Instruct (3B) | meetara-education-family-v1.0.gguf    | education, research, ...           |
+| Creative        | Qwen2.5-3B-Instruct (3B) | meetara-creative-family-v1.0.gguf     | creative, arts, ...                |
+| Leadership      | Qwen2.5-3B-Instruct (3B) | meetara-leadership-family-v1.0.gguf   | leadership, hr, ...                |
+| Technical       | Phi-3.5-mini-instruct    | meetara-technical-family-v1.0.gguf    | programming, tech, ...             |
+
+### **Key Reminders**
+- Parent GGUFs = packaging, not training.
+- Subdomain LoRA adapters = trained units.
+- Router/meta file = orchestration for serving.
+- Speech/emotion models = separate GGUFs. 

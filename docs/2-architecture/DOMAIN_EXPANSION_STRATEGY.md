@@ -536,3 +536,62 @@ def generate_targeted_training_data(domain, foundation_knowledge, samples=800):
 **Document Status**: Strategic Recommendation  
 **Next Review**: Upon Phase 1 completion  
 **Implementation**: Ready for Phase 2A initiation 
+
+**Note:** The source of truth for all domain-to-model assignments is now `configs/domain_model_mapping.yaml`. The table below is synchronized with this config.
+
+## 🗂️ DOMAIN-TO-MODEL MAPPING (UPDATED)
+
+#### **PHI MODEL ANALYSIS & STRATEGY**
+- **Microsoft Phi-2 (2.7B)**: Available but **excluded** due to memory constraints (too memory-intensive for current CPU training)
+- **Microsoft Phi-3.5-mini-instruct (3.8B)**: **Planned for Phase 2** upgrade when GPU available
+- **Current Strategy**: CPU-optimized models (DialoGPT-medium + Qwen2.5-3B) for stable training
+- **Phase 2 Impact**: Business domain +1,000% parameters (345M → 3.8B), others +27% (3B → 3.8B)
+
+| Domain                | Model                        | Phase 2 Upgrade              |
+|-----------------------|------------------------------|------------------------------|
+| healthcare            | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| mental_health         | microsoft/DialoGPT-medium    | microsoft/Phi-3.5-mini-instruct |
+| fitness               | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| nutrition             | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| sleep                 | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| preventive_care       | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| home_management       | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| parenting             | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| relationships         | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| personal_assistant    | microsoft/DialoGPT-medium    | microsoft/Phi-3.5-mini-instruct |
+| shopping              | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| planning              | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| transportation        | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| communication         | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| business              | microsoft/DialoGPT-medium    | microsoft/Phi-3.5-mini-instruct |
+| leadership            | Qwen/Qwen2.5-3B-Instruct     | microsoft/Phi-3.5-mini-instruct |
+| hr                    | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| customer_service      | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| sales                 | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| life_coaching         | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| social_support        | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| education             | Qwen/Qwen2.5-3B-Instruct     | microsoft/Phi-3.5-mini-instruct |
+| teaching              | Qwen/Qwen2.5-3B-Instruct     | microsoft/Phi-3.5-mini-instruct |
+| language_learning     | Qwen/Qwen2.5-3B-Instruct     | microsoft/Phi-3.5-mini-instruct |
+| research              | Qwen/Qwen2.5-3B-Instruct     | microsoft/Phi-3.5-mini-instruct |
+| programming_tech      | Qwen/Qwen2.5-3B-Instruct     | microsoft/Phi-3.5-mini-instruct |
+| creative              | Qwen/Qwen2.5-3B-Instruct     | microsoft/Phi-3.5-mini-instruct |
+| sports_recreation     | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| mythology             | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| spiritual             | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| yoga                  | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| psychology            | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| financial_planning    | Qwen/Qwen2.5-3B-Instruct     | microsoft/Phi-3.5-mini-instruct |
+| legal_assistance      | Qwen/Qwen2.5-3B-Instruct     | microsoft/Phi-3.5-mini-instruct |
+| real_estate           | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| insurance             | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| emergency_response    | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| crisis_management     | microsoft/DialoGPT-medium    | microsoft/DialoGPT-medium    |
+| disaster_preparedness | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| safety_security       | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| agriculture           | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| space_technology      | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| aeronautics           | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| automobile            | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| manufacturing         | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |
+| travel_tourism        | Qwen/Qwen2.5-3B-Instruct     | Qwen/Qwen2.5-3B-Instruct     |

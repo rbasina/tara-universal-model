@@ -1,8 +1,15 @@
 {
   "domain": "education",
   "base_model": "Qwen/Qwen2.5-3B-Instruct",
-  "output_dir": "models/adapters/education_qwen2.5-3b-instruct",
-  "resume_checkpoint": null,
-  "start_time": "2025-06-26T11:13:46.476628",
-  "status": "training"
+  "output_dir": "models/education/meetara_trinity_phase_efficient_core_processing",
+  "resume_checkpoint": "models/education/meetara_trinity_phase_efficient_core_processing/checkpoint-134",
+  "start_time": "2025-06-26T22:14:21.314673",
+  "status": "ready_to_resume",
+  "retries": 0,
+  "current_step": 134,
+  "total_steps": 400,
+  "progress_percentage": 33.5,
+  "last_update": "2025-06-27T09:40:00.000000",
+  "checkpoint_validated": true,
+  "notes": "Ready to resume from checkpoint-134"
 }

@@ -1,0 +1,26 @@
+{
+  "domains": [
+    {
+      "name": "Healthcare",
+      "current_model": "DialoGPT-medium",
+      "status": "completed",
+      "progress": "100% (400/400)",
+      "model_size": "0.7"
+    },
+    {
+      "name": "Education",
+      "current_model": "Qwen2.5-3B-Instruct",
+      "status": "in_progress",
+      "progress": "34% (134/400)",
+      "model_size": "1.9"
+    },
+    {
+      "name": "Creative",
+      "current_model": "Qwen2.5-3B-Instruct",
+      "status": "not_started",
+      "progress": "0%",
+      "model_size": "1.9"
+    }
+  ],
+  "total_size_gb": "4.6"
+}

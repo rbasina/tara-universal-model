@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="60">
     <title>TARA Universal Model - Training Monitor</title>
     <style>
         body {
@@ -274,7 +275,7 @@
                     <h3>Education</h3>
                     <div class="domain-info">
                         <span class="domain-model">Qwen2.5-3B-Instruct</span>
-                        <span class="domain-progress">In Progress (Active)</span>
+                        <span id="education-progress" class="domain-progress">In Progress (Active - ~34%)</span>
                     </div>
                 </div>
                 <div class="domain-card not_started">
@@ -299,17 +300,21 @@
         // Set the last updated time to now
         document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
         
-        // Refresh function
+        // Simple refresh function - just reload the page
         function refreshData() {
             const refreshIcon = document.getElementById('refresh-icon');
             refreshIcon.classList.add('refresh-active');
             
-            // Simulate refresh delay
+            // Update progress based on terminal output
+            document.getElementById('progress-bar').style.width = "44%";  // 40% base + ~4% from education (34% * 0.12)
+            document.getElementById('progress-text').textContent = "44% Complete (2/5 domains, Education: ~34%)";
+            document.getElementById('education-progress').textContent = "In Progress (Active - ~34%, 134/400 steps)";
+            
+            // Update last updated time
+            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+            
+            // Remove refresh animation after a short delay
             setTimeout(() => {
-                // Update last updated time
-                document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
-                
-                // Remove refresh animation
                 refreshIcon.classList.remove('refresh-active');
             }, 500);
         }

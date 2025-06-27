@@ -10,13 +10,21 @@ from typing import Dict, List, Optional, Any
 from pathlib import Path
 import json
 
+# Configure a custom logger to only show the warning once
+llama_logger = logging.getLogger("llama_cpp_warning")
+llama_logger.setLevel(logging.WARNING)
+llama_logger.addHandler(logging.NullHandler())  # Suppress output by default
+
 try:
     from llama_cpp import Llama
     LLAMA_CPP_AVAILABLE = True
 except ImportError:
     LLAMA_CPP_AVAILABLE = False
     Llama = None  # Define Llama as None for type hints when not available
-    logging.warning("llama-cpp-python not available. Install with: pip install llama-cpp-python")
+    # Use custom logger to only show this warning once
+    if not hasattr(llama_logger, 'warning_shown'):
+        llama_logger.warning("llama-cpp-python not available. Install with: pip install llama-cpp-python")
+        setattr(llama_logger, 'warning_shown', True)
 
 from ..utils.config import TARAConfig
 

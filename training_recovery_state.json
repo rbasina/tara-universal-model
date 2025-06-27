@@ -1,11 +1,7 @@
 {
-  "domains": "education,creative,leadership",
+  "domains": "leadership",
   "model": "Qwen/Qwen2.5-3B-Instruct",
-  "start_time": "2025-06-26T10:04:46.683448",
-  "last_check": "2025-06-26T11:05:55.066395",
-  "checkpoints": {
-    "education": "models/adapters\\education\\checkpoint-1125",
-    "creative": "models/adapters\\creative\\checkpoint-1125",
-    "leadership": "models/adapters\\leadership\\checkpoint-700"
-  }
+  "start_time": "2025-06-27T11:41:30.064798",
+  "last_check": "2025-06-27T11:41:30.064798",
+  "checkpoints": {}
 }

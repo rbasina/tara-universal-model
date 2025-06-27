@@ -1,10 +1,17 @@
 {
   "domain": "creative",
   "base_model": "Qwen/Qwen2.5-3B-Instruct",
-  "output_dir": "models/adapters/creative_qwen2.5-3b-instruct",
-  "resume_checkpoint": "models/adapters\\creative\\checkpoint-1125",
-  "start_time": "2025-06-26T10:37:41.450663",
-  "status": "failed",
-  "error": "loaded state dict contains a parameter group that doesn't match the size of optimizer's group",
-  "failed_at": "2025-06-26T10:39:02.151409"
+  "output_dir": "models/creative/meetara_trinity_phase_efficient_core_processing",
+  "resume_checkpoint": null,
+  "start_time": "2025-06-27T03:10:34.630297",
+  "status": "training",
+  "retries": 0,
+  "current_step": 197,
+  "total_steps": 400,
+  "progress_percentage": 49,
+  "last_update": "2025-06-27T12:17:23.180389",
+  "loss": 0.1173,
+  "learning_rate": 0.00021749999999999997,
+  "epoch": 0.35,
+  "notes": "Training in progress - step 197/400 (49%)"
 }

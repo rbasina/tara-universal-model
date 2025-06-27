@@ -24,17 +24,18 @@ model_config:
 training_config:
   # HAI Core Training Parameters - CPU OPTIMIZED
   num_epochs: 1  # Reduced for faster testing
-  batch_size: 2  # Reduced for memory efficiency
+  batch_size: 1  # Reduced for memory efficiency
   learning_rate: 5e-4  # Proven working learning rate
-  max_sequence_length: 128  # Reduced for memory
-  gradient_accumulation_steps: 2
+  max_sequence_length: 64  # Reduced for memory and speed
+  gradient_accumulation_steps: 1  # Reduced for faster updates
   warmup_ratio: 0.1
   weight_decay: 0.01
+  max_steps: 200  # Set maximum steps to limit training time
   
   # Logging and Monitoring
   logging_steps: 5  # More frequent updates
-  save_steps: 50  # More frequent saves
-  save_total_limit: 2
+  save_steps: 20  # More frequent saves for better checkpointing
+  save_total_limit: 3
   
   # Stability Settings - CPU FOCUSED
   fp16: false  # Disable for CPU stability
@@ -43,14 +44,14 @@ training_config:
   
   # PEFT/LoRA Configuration for Universal Adaptation
   use_peft: true
-  lora_r: 8
-  lora_alpha: 16
+  lora_r: 4  # Reduced for faster training
+  lora_alpha: 8  # Reduced for faster training
   lora_dropout: 0.1
   lora_target_modules: ["c_attn", "c_proj"]  # DialoGPT specific
   
   # Evaluation
-  evaluation_strategy: "epoch"
-  eval_steps: 500
+  evaluation_strategy: "steps"
+  eval_steps: 50
 
 # HAI Domain Configuration
 domains:
@@ -122,8 +123,8 @@ domain:
 # Model Configuration
 model:
   base_model_name: "microsoft/DialoGPT-medium"
-  max_input_length: 1024
-  max_response_length: 256
+  max_input_length: 512  # Reduced for faster processing
+  max_response_length: 128  # Reduced for faster processing
   temperature: 0.7
   top_p: 0.9
   top_k: 50
@@ -134,22 +135,22 @@ model:
 # Training Configuration
 training:
   # LoRA Configuration
-  lora_r: 8
-  lora_alpha: 16
+  lora_r: 4  # Reduced for faster training
+  lora_alpha: 8  # Reduced for faster training
   lora_dropout: 0.1
   lora_target_modules: ["c_attn", "c_proj"]  # DialoGPT specific modules
   
   # Training Parameters - OPTIMIZED FOR CPU/LOW MEMORY
-  batch_size: 2  # Reduced for memory efficiency
-  gradient_accumulation_steps: 2  # Reduced from 4
+  batch_size: 1  # Reduced for memory efficiency
+  gradient_accumulation_steps: 1  # Reduced for faster updates
   learning_rate: 0.0003
   num_epochs: 1  # Reduced for faster completion
-  max_steps: -1
+  max_steps: 200  # Set a maximum number of steps for faster completion
   warmup_ratio: 0.1
   weight_decay: 0.01
   
   # Data Parameters
-  max_sequence_length: 128  # Reduced from 256 for memory
+  max_sequence_length: 64  # Reduced for memory and speed
   train_split: 0.8
   validation_split: 0.1
   test_split: 0.1
@@ -160,11 +161,11 @@ training:
   dataloader_num_workers: 0  # Disabled to reduce memory
   
   # Logging and Saving
-  logging_steps: 10
-  save_steps: 100
-  evaluation_strategy: "epoch"
-  eval_steps: 500
-  save_total_limit: 2
+  logging_steps: 5  # More frequent updates
+  save_steps: 20  # More frequent saves for better checkpointing
+  evaluation_strategy: "steps"
+  eval_steps: 50
+  save_total_limit: 3
   
   # Advanced
   use_peft: true

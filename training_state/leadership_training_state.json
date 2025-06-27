@@ -1,10 +1,14 @@
 {
   "domain": "leadership",
   "base_model": "Qwen/Qwen2.5-3B-Instruct",
-  "output_dir": "models/adapters/leadership_qwen2.5-3b-instruct",
-  "resume_checkpoint": "models/adapters\\leadership\\checkpoint-700",
-  "start_time": "2025-06-26T10:39:02.631102",
-  "status": "failed",
-  "error": "loaded state dict contains a parameter group that doesn't match the size of optimizer's group",
-  "failed_at": "2025-06-26T10:40:53.013723"
+  "output_dir": "models/leadership/meetara_trinity_phase_efficient_core_processing",
+  "resume_checkpoint": null,
+  "start_time": "2025-06-27T11:41:30.073663",
+  "status": "loading_model",
+  "retries": 0,
+  "current_step": 0,
+  "total_steps": 200,
+  "progress_percentage": 0,
+  "last_update": "2025-06-27T11:41:30.082839",
+  "notes": "Loading model and preparing training environment"
 }

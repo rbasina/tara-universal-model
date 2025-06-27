@@ -174,6 +174,7 @@ class ProductionValidatedTrainer(Trainer):
         self.domain = domain
         self.enhanced_trainer = enhanced_trainer
         self.last_validation_step = 0
+        self.last_state_update_step = 0
         
     def on_save(self, args, state, control, **kwargs):
         """Perform production validation when model is saved."""
@@ -200,20 +201,84 @@ class ProductionValidatedTrainer(Trainer):
                 self.enhanced_trainer.validation_checkpoints.append(checkpoint_result)
                 
                 # Log validation result
+                production_ready = validation_result.get("production_ready", False)
                 score = validation_result.get("overall_score", 0)
-                ready = validation_result.get("production_ready", False)
-                
-                if ready:
-                    logger.info(f"✅ Step {state.global_step}: Production ready (score: {score:.2f})")
+                if production_ready:
+                    logger.info(f"✅ Step {state.global_step}: Model is production ready (Score: {score:.2f})")
                 else:
-                    logger.info(f"⚠️ Step {state.global_step}: Needs improvement (score: {score:.2f})")
+                    logger.warning(f"⚠️ Step {state.global_step}: Model needs improvement (Score: {score:.2f})")
                 
                 self.last_validation_step = state.global_step
                 
-                loop.close()
-                
+                # Update state file with validation result
+                self._update_state_file(state, validation_result)
             except Exception as e:
-                logger.error(f"❌ Validation failed at step {state.global_step}: {e}")
+                logger.error(f"❌ Production validation failed: {e}")
+        
+        # Always update state file on save
+        self._update_state_file(state)
+        
+        return super().on_save(args, state, control, **kwargs)
+    
+    def on_step_end(self, args, state, control, **kwargs):
+        """Update state file periodically during training."""
+        # Update state file every 20 steps
+        if state.global_step - self.last_state_update_step >= 20:
+            self._update_state_file(state)
+            self.last_state_update_step = state.global_step
+        
+        return super().on_step_end(args, state, control, **kwargs)
+    
+    def _update_state_file(self, state, validation_result=None):
+        """Update the state file with current training progress."""
+        try:
+            # Get the state file path
+            state_file = f"training_state/{self.domain}_training_state.json"
+            if not os.path.exists(state_file):
+                logger.warning(f"⚠️ State file not found: {state_file}")
+                return
+            
+            # Read current state
+            with open(state_file, 'r') as f:
+                current_state = json.load(f)
+            
+            # Update with current progress
+            current_state.update({
+                "status": "training",
+                "current_step": state.global_step,
+                "total_steps": state.max_steps,
+                "progress_percentage": round(state.global_step / state.max_steps * 100, 2) if state.max_steps > 0 else 0,
+                "current_epoch": state.epoch,
+                "last_update": datetime.now().isoformat(),
+                "training_loss": state.log_history[-1].get("loss") if state.log_history else None,
+                "learning_rate": state.log_history[-1].get("learning_rate") if state.log_history else None,
+            })
+            
+            # Add validation result if available
+            if validation_result:
+                current_state["last_validation"] = {
+                    "timestamp": datetime.now().isoformat(),
+                    "step": state.global_step,
+                    "production_ready": validation_result.get("production_ready", False),
+                    "score": validation_result.get("overall_score", 0)
+                }
+            
+            # Save updated state
+            with open(state_file, 'w') as f:
+                json.dump(current_state, f, indent=2)
+            
+            # Also update the log file
+            try:
+                log_file = f"logs/{self.domain}_training.log"
+                with open(log_file, 'a') as f:
+                    f.write(f"{datetime.now().isoformat()} - Step {state.global_step}/{state.max_steps} "
+                           f"({round(state.global_step / state.max_steps * 100, 2)}%) - "
+                           f"Loss: {state.log_history[-1].get('loss') if state.log_history else 'N/A'}\n")
+            except Exception as log_error:
+                logger.warning(f"⚠️ Failed to update log file: {log_error}")
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to update state file: {e}")
 
 class TrainingOrchestrator:
     """
