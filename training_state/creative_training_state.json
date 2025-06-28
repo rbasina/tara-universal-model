@@ -4,14 +4,14 @@
   "output_dir": "models/creative/meetara_trinity_phase_efficient_core_processing",
   "resume_checkpoint": null,
   "start_time": "2025-06-27T03:10:34.630297",
-  "status": "training",
+  "status": "completed",
   "retries": 0,
-  "current_step": 212,
+  "completed_at": "2025-06-27T22:16:44.538356",
+  "model_path": "models/creative/meetara_trinity_phase_efficient_core_processing",
+  "duration_seconds": 68769.916687,
+  "current_step": 400,
   "total_steps": 400,
-  "progress_percentage": 53,
-  "last_update": "2025-06-27T13:04:08.461925",
-  "loss": 0.1173,
-  "learning_rate": 0.00021749999999999997,
-  "epoch": 0.35,
-  "notes": "Training in progress - step 212/400 (53%)"
+  "progress_percentage": 100,
+  "last_update": "2025-06-27T23:19:31.534745",
+  "notes": "Training in progress - step 400/400 (100%)"
 }

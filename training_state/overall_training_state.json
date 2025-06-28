@@ -1,11 +1,20 @@
 {
   "domains": [
+    "creative",
     "leadership"
   ],
   "base_model": "Qwen/Qwen2.5-3B-Instruct",
-  "start_time": "2025-06-27T11:41:30.066156",
+  "resume_from_checkpoint": {},
+  "force_fresh": true,
+  "start_time": "2025-06-27T03:10:34.610099",
   "status": "in_progress",
-  "completed_domains": [],
+  "completed_domains": [
+    "creative"
+  ],
+  "pending_domains": [],
   "failed_domains": [],
-  "current_domain": "leadership"
+  "current_domain": "leadership",
+  "current_domain_start_time": "2025-06-27T22:16:52.151890",
+  "last_completed_domain": "creative",
+  "last_completed_at": "2025-06-27T22:16:46.914685"
 }

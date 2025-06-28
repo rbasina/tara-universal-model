@@ -108,8 +108,8 @@
     {
       "name": "Leadership",
       "current_model": "Qwen/Qwen2.5-3B-Instruct",
-      "status": "not_started",
-      "progress": "0%",
+      "status": "in_progress",
+      "progress": "51% (206/400)",
       "model_size": null
     },
     {
@@ -185,8 +185,8 @@
     {
       "name": "Creative",
       "current_model": "Qwen/Qwen2.5-3B-Instruct",
-      "status": "in_progress",
-      "progress": "53% (212/400)",
+      "status": "completed",
+      "progress": "100% (400/400)",
       "model_size": null
     },
     {

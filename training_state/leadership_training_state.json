@@ -3,12 +3,12 @@
   "base_model": "Qwen/Qwen2.5-3B-Instruct",
   "output_dir": "models/leadership/meetara_trinity_phase_efficient_core_processing",
   "resume_checkpoint": null,
-  "start_time": "2025-06-27T11:41:30.073663",
-  "status": "loading_model",
+  "start_time": "2025-06-27T22:16:52.183978",
+  "status": "training",
   "retries": 0,
-  "current_step": 0,
-  "total_steps": 200,
-  "progress_percentage": 0,
-  "last_update": "2025-06-27T11:41:30.082839",
-  "notes": "Loading model and preparing training environment"
+  "current_step": 206,
+  "total_steps": 400,
+  "progress_percentage": 51,
+  "last_update": "2025-06-28T08:22:31.089079",
+  "notes": "Training in progress - step 206/400 (51%)"
 }
